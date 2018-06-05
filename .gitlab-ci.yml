@@ -1,0 +1,31 @@
+image: python:3-stretch
+
+
+stages:
+  - lint
+  - run
+
+flake8:
+  stage: lint
+  before_script:
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip install -r requirements_dev.txt
+  script:
+    - flake8 .
+
+run:
+  stage: run
+  before_script:
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip install -r requirements.txt
+  script:
+    - python3 gitlab_languages.py
+    - mv metrics.txt public/
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - public
+  only:
+    - master
