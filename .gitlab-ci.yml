@@ -23,6 +23,7 @@ pages:
     - pip install -U git+https://github.com/python-gitlab/python-gitlab.git # this feature requires python-gitlab > 1.4.0
   script:
     - python3 gitlab_languages.py --projectlimit 10
+    - mkdir public
     - mv metrics.txt public/
   artifacts:
     expire_in: 1 week

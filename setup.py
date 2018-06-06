@@ -24,7 +24,7 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3.6',
     ],
-    description="Utility to generate a Prometheus Node Exporter "
+    description="Utility to generate a Prometheus data source "
                 "text file for your GitLab repository "
                 "using the GitLab Language API",
     install_requires=requirements,

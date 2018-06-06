@@ -1,6 +1,6 @@
 # gitlab_languages
 
-Utility to generate a Prometheus Node Exporter text file for your GitLab repository
+Utility to generate a Prometheus data source text file for your GitLab repository
 using the GitLab Language API
 
 ## installation
@@ -100,4 +100,4 @@ total_projects_scanned 35.0
 ```
 
 Run the script via GitLab API with schedules.
-Then you can add it to your Prometheus instance as Node exporter.
+Then you can add it to your Prometheus instance as data source.
