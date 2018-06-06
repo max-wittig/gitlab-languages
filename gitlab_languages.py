@@ -117,6 +117,22 @@ class LanguageScanner:
         self.metrics_collector.write(total=total_scanned)
 
 
+def check_env_variables():
+    required_variables = ["GITLAB_ACCESS_TOKEN"]
+    missing_variables = []
+    [
+        missing_variables.append(variable)
+        for variable in required_variables
+        if not os.getenv(variable)
+    ]
+    if len(missing_variables) > 0:
+        exit(
+            "Please set the required environment variables: {0}".format(
+                ", ".join(missing_variables)
+            )
+        )
+
+
 def main():
     arg_parser = argparse.ArgumentParser("gitlab_languages")
     arg_parser.add_argument(
@@ -133,20 +149,9 @@ def main():
         required=False,
         help="Provide custom args to the GitLab API"
     )
-    required_variables = ["GITLAB_ACCESS_TOKEN"]
-    missing_variables = []
-    [
-        missing_variables.append(variable)
-        for variable in required_variables
-        if not os.getenv(variable)
-    ]
-    if len(missing_variables) > 0:
-        exit(
-            "Please set the required environment variables: {0}".format(
-                ", ".join(missing_variables)
-            )
-        )
+
     arguments = vars(arg_parser.parse_args())
+    check_env_variables()
     gitlab_url = arguments.get("instanceurl")
     scanner = LanguageScanner(gitlab_url,
                               os.getenv("GITLAB_ACCESS_TOKEN"))

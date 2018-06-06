@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 with open('README.md') as readme_file:
     readme = readme_file.read()
 
-requirements = []
+requirements = ["prometheus_client==0.2.0", "python-gitlab==1.5.0"]
 
 setup_requirements = []
 
@@ -22,13 +22,11 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
-    description="Utility to list all languages in your "
-                "GitLab instance, using the GitLab Language API",
+    description="Utility to generate a Prometheus Node Exporter "
+                "text file for your GitLab repository "
+                "using the GitLab Language API",
     install_requires=requirements,
     license="MIT license",
     long_description=readme,
