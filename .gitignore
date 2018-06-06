@@ -102,4 +102,4 @@ ENV/
 .mypy_cache/
 .idea/
 *.iml
-*.txt
+metrics.txt
