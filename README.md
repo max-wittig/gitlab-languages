@@ -1,7 +1,7 @@
 # gitlab_languages
 
-Utility to generate a Prometheus data source text file for your GitLab repository
-using the GitLab Language API
+Utility to generate a Prometheus data source text file for your GitLab instance
+using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#languages)
 
 ## installation
 
@@ -42,27 +42,26 @@ optional arguments:
   --projectlimit PROJECTLIMIT
                         Set project limit to scan
   --args ARGS           Provide custom args to the GitLab API
-
 ```
 
-### Additional arguments
+### additional arguments
 
-You can specify additional arguments, that are directly supplied to the
+You can specify additional arguments, that will be directly supplied to the
 python-gitlab library or to the GitLab API endpoint.
 Example:
 
-    ```
-    python3 gitlab_languages --args owned=True
-    ``` 
+```bash
+python3 gitlab_languages --args owned=True
+``` 
 
-More info about the available additional args can be found
+More info about the available additional args can be found here:
 
 * http://python-gitlab.readthedocs.io/en/stable/
 * https://docs.gitlab.com/ce/api/
 
-### Example output
+### example output
 
-The output will look something like this. 
+The output will look something like this:
 
 ```
 metrics.txt
