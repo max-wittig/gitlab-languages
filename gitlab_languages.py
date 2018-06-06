@@ -2,13 +2,26 @@
 import argparse
 import os
 import gitlab
-from prometheus_client import Gauge, CollectorRegistry, write_to_textfile
+from prometheus_client import Gauge, Counter, CollectorRegistry, write_to_textfile
 import re
 from gitlab.exceptions import GitlabGetError
+import logging
+import itertools
+
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+log_level = logging.INFO
+handler.setLevel(log_level)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(log_level)
 
 
 def translate_language(lang):
-    return lang.replace("#", "sharp").replace("+", "plus")
+    return lang.replace("#", "sharp")\
+        .replace("+", "plus")\
+        .replace("-", "minus")
 
 
 class LanguageMetrics:
@@ -36,16 +49,25 @@ class MetricsCollector:
     def add(self, language_name, percentage):
         if self.metrics.get(language_name):
             self.metrics[language_name] += LanguageMetrics(percentage)
+            logger.debug(f"Adding {percentage} to {language_name}")
         else:
             self.metrics[language_name] = LanguageMetrics(percentage)
+            logger.info(f"Adding new language {language_name}")
 
-    def write(self):
+    def write(self, total=None):
         total_languages = len(self.metrics.items())
         for language_name, language in self.metrics.items():
+            logger.info(f"Adding {language_name} as Gauge")
             language_name = translate_language(language_name)
-            language_name = re.sub("\W+", "_", language_name)
+            language_name = re.sub("\W+", "", language_name)
             gauge = Gauge(language_name, language_name, registry=self.registry)
             gauge.set(float(language) / total_languages)
+
+        if total:
+            counter = Counter("total_projects_scanned", "Total projects scanned", registry=self.registry)
+            counter.inc(total)
+
+        logger.info("Writing languages to metrics.txt file")
         write_to_textfile("metrics.txt", self.registry)
 
 
@@ -55,21 +77,34 @@ class LanguageScanner:
         self.gl.auth()
         self.metrics_collector = MetricsCollector()
 
-    def scan_all_projects(self):
-        for project in self.gl.projects.list(as_list=False, owned=True):
-            print(project.name)
+    def scan_projects(self, limit=None):
+        total_scanned = 0
+        projects = self.gl.projects.list(as_list=False, all_available=True)
+        if limit:
+            projects = itertools.islice(projects, limit)
+            logger.info(f"Scanning {limit} projects")
+        else:
+            logger.info("Scanning all projects")
+        for project in projects:
+            logger.info(f"Scanning project {project.name}")
             try:
                 for language_name, percentage in project.languages().items():
                     self.metrics_collector.add(language_name, percentage)
-            except GitlabGetError:
-                pass
-        self.metrics_collector.write()
+                total_scanned += 1
+            except GitlabGetError as e:
+                logger.error(f"Failed to scan project {project.name}")
+                logger.error(e.error_message)
+
+        self.metrics_collector.write(total=total_scanned)
 
 
 def main():
     arg_parser = argparse.ArgumentParser("gitlab_languages")
     arg_parser.add_argument(
-        "--instance-url", default="https://gitlab.com", required=False
+        "--instanceurl", default="https://gitlab.com", required=False,
+    )
+    arg_parser.add_argument(
+        "--projectlimit", required=False,
     )
     required_variables = ["GITLAB_ACCESS_TOKEN"]
     missing_variables = []
@@ -84,10 +119,11 @@ def main():
                 ", ".join(missing_variables)
             )
         )
-    # arguments = vars(arg_parser.parse_args())
-    scanner = LanguageScanner("https://gitlab.com",
+    arguments = vars(arg_parser.parse_args())
+    gitlab_url = arguments.get("instanceurl")
+    scanner = LanguageScanner(gitlab_url,
                               os.getenv("GITLAB_ACCESS_TOKEN"))
-    scanner.scan_all_projects()
+    scanner.scan_projects(limit=int(arguments.get("projectlimit")))
 
 
 if __name__ == "__main__":

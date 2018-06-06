@@ -1,4 +1,4 @@
-image: python:3-stretch
+image: python:3.6-stretch
 
 
 stages:
@@ -20,6 +20,7 @@ run:
     - python3 -m venv venv
     - source venv/bin/activate
     - pip install -r requirements.txt
+    - pip install -U git+https://github.com/python-gitlab/python-gitlab.git # this feature requires python-gitlab > 1.4.0
   script:
     - python3 gitlab_languages.py
     - mv metrics.txt public/
