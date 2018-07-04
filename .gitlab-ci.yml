@@ -1,28 +1,26 @@
-image: python:3.6-stretch
+image: python:3.7-stretch
 
 
 stages:
   - lint
   - run
 
+before_script:
+  - python3 -m venv venv
+  - . venv/bin/activate
+  - pip install pipenv
+  - pipenv install
+
 flake8:
   stage: lint
-  before_script:
-    - python3 -m venv venv
-    - source venv/bin/activate
-    - pip install -r requirements_dev.txt
   script:
-    - flake8 .
+    - pipenv run lint
 
 pages:
   stage: run
-  before_script:
-    - python3 -m venv venv
-    - source venv/bin/activate
-    - pip install -r requirements.txt
-    - pip install -U git+https://github.com/python-gitlab/python-gitlab.git # this feature requires python-gitlab > 1.4.0
   script:
-    - python3 gitlab_languages.py --projectlimit 10
+    - pipenv run start
+  after_script:
     - mkdir public
     - mv metrics.txt public/
   artifacts:

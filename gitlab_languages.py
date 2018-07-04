@@ -207,7 +207,7 @@ def main():
     additional_args = arguments.get("args")
     additional_args_dict = {}
     if additional_args:
-        for pair in additional_args.split(" "):
+        for pair in additional_args:
             entry = pair.split("=")
             additional_args_dict[entry[0]] = entry[1]
 

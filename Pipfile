@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[dev-packages]
+flake8 = "*"
+"pep8-naming" = "*"
+
+[packages]
+python-gitlab = "*"
+prometheus_client = "*"
+
+[scripts]
+start = "python gitlab_languages.py --projectlimit 10"
+lint = "flake8 ."

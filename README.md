@@ -3,19 +3,21 @@
 Utility to generate a Prometheus data source text file for your GitLab instance
 using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#languages)
 
+![Demo](https://cdn.rawgit.com/max-wittig/gitlab_languages/master/images/termtosvg_jai2cshl.svg)
+
 ## installation
 
-1. Install python virtualenv
+1. Install pipenv
 
     ```bash
-    python3 -m venv venv
+    pip install pipenv
     ```
 
 2. Install python dependencies
 
     ```bash
-    source venv/bin/activate
-    pip install -r requirements.txt
+    pipenv install
+    pipenv shell
     ```
 
 3. Set the required environment variables
@@ -27,7 +29,7 @@ using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#lan
 3. Run the script
 
     ```bash
-    python3 gitlab_languages.py
+    python gitlab_languages.py
     ```
  
 ## usage

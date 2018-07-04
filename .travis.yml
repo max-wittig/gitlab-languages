@@ -4,8 +4,11 @@ language: python
 python:
   - 3.6
 
-# Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -r requirements_dev.txt
+install:
+  - python3 -m venv venv
+  - . venv/bin/activate
+  - venv/bin/pip3 install pipenv
+  - venv/bin/pipenv install --dev
 
-# Command to run tests, e.g. python setup.py test
-script: flake8 .
+script:
+  - pipenv run lint
