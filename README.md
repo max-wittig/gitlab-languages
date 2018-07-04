@@ -21,6 +21,7 @@ using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#lan
 3. Set the required environment variables
     ```bash
     export GITLAB_ACCESS_TOKEN=<SOME_TOKEN_WITH_API_SCOPE>
+    export GITLAB_URL=https://gitlab.com
     ```
 
 3. Run the script
@@ -32,22 +33,24 @@ using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#lan
 ## usage
 
 ```
-usage: gitlab_languages [-h] [--instanceurl INSTANCEURL]
-                        [--projectlimit PROJECTLIMIT] [--args ARGS]
+usage: gitlab_languages [-h] [--projectlimit PROJECTLIMIT]
+                        [--args ARGS [ARGS ...]]
+                        [--groups GROUPS [GROUPS ...]]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --instanceurl INSTANCEURL
-                        The url of your GitLab instance
   --projectlimit PROJECTLIMIT
                         Set project limit to scan
-  --args ARGS           Provide custom args to the GitLab API
+  --args ARGS [ARGS ...]
+                        Provide custom args to the GitLab API
+  --groups GROUPS [GROUPS ...]
+                        Scan only certain groups, separated by space
 ```
 
 ### additional arguments
 
 You can specify additional arguments, that will be directly supplied to the
-python-gitlab library or to the GitLab API endpoint.
+[python-gitlab library](https://github.com/python-gitlab/python-gitlab) or to the GitLab API endpoint.
 Example:
 
 ```bash
