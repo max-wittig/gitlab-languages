@@ -57,17 +57,43 @@ class MetricsCollector:
             self.metrics[language_name] = LanguageMetrics(percentage)
             logger.info(f"Adding new language {language_name}")
 
-    def write(self, groups_scanned=0, projects_scanned=0):
+    def write(self, groups_scanned=0, projects_scanned=0, projects_skipped=0):
         total_languages = len(self.metrics.items())
-        for language_name, language in self.metrics.items():
+        unknown_languages_gauge = Gauge(
+            "total_unknown_languages",
+            "Unknown languages",
+            registry=self.registry,
+        )
+        total_percent = sum([float(percent) for _, percent in self.metrics.items()])
+        logger.info(f"{total_percent}% total scanned")
+
+        relative_languages = {
+            language_name: (float(language) / projects_scanned)
+            for language_name, language in self.metrics.items()
+        }
+
+        for language_name, language in relative_languages.items():
             logger.info(f"Adding {language_name} as Gauge")
             language_name = translate_language(language_name)
             language_name = re.sub("\W+", "", language_name)
-            gauge = Gauge(language_name,
-                          language_name,
-                          registry=self.registry,
-            )
-            gauge.set(float(language) / total_languages)
+            try:
+                gauge = Gauge(
+                    language_name,
+                    language_name,
+                    registry=self.registry,
+                )
+                gauge.set(language)
+            except:
+                unknown_languages_gauge.inc(language)
+                logger.error(f"Could not add gauge for language {language_name}")
+                self.metrics.pop(language_name, None)
+
+        total_languages_scanned_gauge = Gauge(
+            "total_languages_scanned",
+            "Total languages scanned",
+            registry=self.registry,
+        )
+        total_languages_scanned_gauge.set(total_languages)
 
         project_scanned_gauge = Gauge(
             "total_projects_scanned",
@@ -75,6 +101,14 @@ class MetricsCollector:
             registry=self.registry,
         )
         project_scanned_gauge.set(projects_scanned)
+
+        projects_failed_gauge = Gauge(
+            "total_projects_skipped",
+            "Total projects skipped",
+            registry=self.registry,
+        )
+        projects_failed_gauge.set(projects_skipped)
+
         groups_scanned_gauge = Gauge(
             "total_groups_scanned",
             "Total groups scanned",
@@ -99,15 +133,22 @@ class LanguageScanner:
         self.metrics_collector = MetricsCollector()
         self.projects_scanned = 0
         self.groups_scanned = 0
+        self.projects_skipped = 0
 
     def scan(self, gl_project):
         logger.info(f"Scanning project {gl_project.name}")
-        self.projects_scanned += 1
 
         try:
+            found = False
             for language_name, percentage in gl_project.languages().items():
+                found = True
                 self.metrics_collector.add(language_name, percentage)
+            if found:
+                self.projects_scanned += 1
+            else:
+                self.projects_skipped += 1
         except GitlabGetError as e:
+            self.projects_skipped += 1
             logger.error(f"Failed to scan project {gl_project.name}")
             logger.debug(e.error_message)
 
@@ -141,7 +182,8 @@ class LanguageScanner:
         projects = self.gl.projects.list(
             as_list=False,
             all_available=True,
-            **args
+            simple=True,
+            **args,
         )
 
         if limit:
@@ -154,7 +196,10 @@ class LanguageScanner:
             logger.info(f"with additional arguments {args}")
         for project in projects:
             self.scan(project)
-        self.metrics_collector.write(projects_scanned=self.projects_scanned)
+        self.metrics_collector.write(
+            projects_scanned=self.projects_scanned,
+            projects_skipped=self.projects_skipped,
+        )
 
 
 def check_env_variables():
