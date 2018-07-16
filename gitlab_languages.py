@@ -64,7 +64,9 @@ class MetricsCollector:
             "Unknown languages",
             registry=self.registry,
         )
-        total_percent = sum([float(percent) for _, percent in self.metrics.items()])
+        total_percent = sum([
+            float(percent) for _, percent in self.metrics.items()
+        ])
         logger.info(f"{total_percent}% total scanned")
 
         relative_languages = {
@@ -83,9 +85,11 @@ class MetricsCollector:
                     registry=self.registry,
                 )
                 gauge.set(language)
-            except:
+            except ValueError:
                 unknown_languages_gauge.inc(language)
-                logger.error(f"Could not add gauge for language {language_name}")
+                logger.error(
+                    f"Could not add gauge for language {language_name}"
+                )
                 self.metrics.pop(language_name, None)
 
         total_languages_scanned_gauge = Gauge(
