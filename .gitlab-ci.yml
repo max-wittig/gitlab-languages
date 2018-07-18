@@ -1,27 +1,20 @@
 image: python:3.7-stretch
 
 stages:
-  - dependencies
   - lint
   - run
 
-install_dependencies:
-  stage: dependencies
-  script:
+.install_dependencies: &install_dependencies
+  before_script:
     - python3 -m venv venv
     - . venv/bin/activate
     - pip install pipenv
     - pipenv install --dev
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - venv/
-    policy: push
+    - . venv/bin/activate
 
 flake8:
   stage: lint
-  before_script:
-    - . venv/bin/activate
+  <<: *install_dependencies
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
@@ -32,18 +25,12 @@ flake8:
 
 pages:
   stage: run
-  before_script:
-    - . venv/bin/activate
+  <<: *install_dependencies
   script:
     - pipenv run start
   after_script:
     - mkdir public
     - mv metrics.txt public/
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - venv/
-    policy: pull
   artifacts:
     expire_in: 1 week
     paths:
