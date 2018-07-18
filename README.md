@@ -71,36 +71,51 @@ The output will look something like this:
 ```
 metrics.txt
 
-# HELP JavaScript JavaScript
-# TYPE JavaScript gauge
-JavaScript 28.93833333333334
-# HELP HTML HTML
-# TYPE HTML gauge
-HTML 28.308888888888887
+# HELP total_unknown_languages Unknown languages
+# TYPE total_unknown_languages gauge
+total_unknown_languages 0.0
+# HELP Python Python
+# TYPE Python gauge
+Python 21.790000000000003
 # HELP CSS CSS
 # TYPE CSS gauge
-CSS 10.09
-# HELP C C
-# TYPE C gauge
-C 4.957777777777777
-# HELP Cplusplus Cplusplus
-# TYPE Cplusplus gauge
-Cplusplus 0.5605555555555556
-# HELP Makefile Makefile
-# TYPE Makefile gauge
-Makefile 0.02888888888888889
+CSS 8.503333333333334
+# HELP SaltStack SaltStack
+# TYPE SaltStack gauge
+SaltStack 1.95
+# HELP JavaScript JavaScript
+# TYPE JavaScript gauge
+JavaScript 0.9533333333333333
+# HELP PLpgSQL PLpgSQL
+# TYPE PLpgSQL gauge
+PLpgSQL 0.7666666666666666
+# HELP Mako Mako
+# TYPE Mako gauge
+Mako 0.03333333333333333
 # HELP Shell Shell
 # TYPE Shell gauge
-Shell 0.008333333333333333
+Shell 0.03
 # HELP Java Java
 # TYPE Java gauge
-Java 33.333333333333336
-# HELP Csharp Csharp
-# TYPE Csharp gauge
-Csharp 16.558888888888887
+Java 30.776666666666667
+# HELP HTML HTML
+# TYPE HTML gauge
+HTML 1.8666666666666665
+# HELP Arduino Arduino
+# TYPE Arduino gauge
+Arduino 33.333333333333336
+# HELP total_languages_scanned Total languages scanned
+# TYPE total_languages_scanned gauge
+total_languages_scanned 10.0
 # HELP total_projects_scanned Total projects scanned
-# TYPE total_projects_scanned counter
-total_projects_scanned 35.0
+# TYPE total_projects_scanned gauge
+total_projects_scanned 3.0
+# HELP total_projects_skipped Total projects skipped
+# TYPE total_projects_skipped gauge
+total_projects_skipped 7.0
+# HELP total_groups_scanned Total groups scanned
+# TYPE total_groups_scanned gauge
+total_groups_scanned 0.0
 ```
 
 Run the script via GitLab API with schedules.
