@@ -38,6 +38,7 @@ using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#lan
 usage: gitlab_languages [-h] [--projectlimit PROJECTLIMIT]
                         [--args ARGS [ARGS ...]]
                         [--groups GROUPS [GROUPS ...]]
+                        [--ignore_groups IGNORE_GROUPS [IGNORE_GROUPS ...]]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -46,7 +47,9 @@ optional arguments:
   --args ARGS [ARGS ...]
                         Provide custom args to the GitLab API
   --groups GROUPS [GROUPS ...]
-                        Scan only certain groups, separated by space
+                        Scan only certain groups
+  --ignore_groups IGNORE_GROUPS [IGNORE_GROUPS ...]
+                        Ignore certain groups and their projects
 ```
 
 ### additional arguments

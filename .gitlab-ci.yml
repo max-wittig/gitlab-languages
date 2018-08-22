@@ -15,11 +15,6 @@ stages:
 flake8:
   stage: lint
   <<: *install_dependencies
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - venv/
-    policy: pull
   script:
     - pipenv run lint
 
