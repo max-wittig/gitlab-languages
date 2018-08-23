@@ -8,15 +8,18 @@ from setuptools import setup, find_packages
 with open('README.md') as readme_file:
     readme = readme_file.read()
 
-requirements = ["prometheus_client==0.2.0", "python-gitlab==1.5.0"]
+requirements = [
+    "prometheus_client>=0.3.1",
+    "python-gitlab>=1.5.1",
+]
 
-setup_requirements = []
-
-test_requirements = []
+test_requirements = [
+    "flake8==3.5.0",
+    "pep8-naming==0.7.0",
+]
 
 setup(
     author="Max Wittig",
-    author_email='max.wittig95@gmail.com',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
@@ -30,13 +33,19 @@ setup(
     install_requires=requirements,
     license="MIT license",
     long_description=readme,
+    long_description_content_type="text/markdown",
     include_package_data=True,
     keywords='gitlab_languages',
     name='gitlab_languages',
     packages=find_packages(include=['gitlab_languages']),
-    setup_requires=setup_requirements,
+    python_requires='>=3.6',
     test_suite='tests',
     tests_require=test_requirements,
+    entry_points={
+      'console_scripts': [
+          'gitlab_languages = gitlab_languages.gitlab_languages:main'
+      ]
+    },
     url='https://github.com/max-wittig/gitlab_languages',
     version='1.0.0',
     zip_safe=False,
