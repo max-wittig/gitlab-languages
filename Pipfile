@@ -6,6 +6,7 @@ name = "pypi"
 [dev-packages]
 flake8 = "*"
 "pep8-naming" = "*"
+twine = "*"
 
 [packages]
 python-gitlab = "*"
@@ -14,3 +15,6 @@ prometheus_client = "*"
 [scripts]
 start = "python gitlab_languages.py --projectlimit 10"
 lint = "flake8 ."
+
+[requires]
+python_version = "3.7"

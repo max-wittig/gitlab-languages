@@ -5,7 +5,7 @@
 
 from setuptools import setup, find_packages
 
-with open('README.md') as readme_file:
+with open("README.md", "r") as readme_file:
     readme = readme_file.read()
 
 requirements = ["prometheus_client==0.2.0", "python-gitlab==1.5.0"]
@@ -29,8 +29,15 @@ setup(
                 "using the GitLab Language API",
     install_requires=requirements,
     license="MIT license",
+    long_description_content_type="text/markdown",
     long_description=readme,
     include_package_data=True,
+    py_modules=["gitlab_languages"],
+    entry_points={
+        "console_scripts": [
+          "gitlab_languages=gitlab_languages:main"
+        ],
+    },
     keywords='gitlab_languages',
     name='gitlab_languages',
     packages=find_packages(include=['gitlab_languages']),
@@ -38,6 +45,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/max-wittig/gitlab_languages',
-    version='1.0.0',
+    version='1.0.6',
     zip_safe=False,
 )
