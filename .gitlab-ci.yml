@@ -10,7 +10,6 @@ stages:
     - . venv/bin/activate
     - pip install pipenv
     - pipenv install --dev
-    - . venv/bin/activate
 
 flake8:
   stage: lint

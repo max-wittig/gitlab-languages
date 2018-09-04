@@ -1,13 +1,18 @@
 import argparse
+import functools
 import itertools
 import logging
 import os
+import pickle
 from pathlib import Path
+from pickle import UnpicklingError
 from typing import List
 
 import gitlab
+import maya
 from gitlab.exceptions import GitlabGetError, GitlabAuthenticationError
 from gitlab.v4.objects import Group
+from maya import MayaDT
 from prometheus_client.core import CollectorRegistry, Gauge
 from prometheus_client.exposition import write_to_textfile
 
@@ -15,6 +20,38 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s "
                            "- %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+MIN_CACHE_TIME = "14 days"
+
+
+def memoize(func):
+    @functools.wraps(func)
+    def wrapper_decorator(*args, **kwargs):
+        gl_project = args[1]
+        last_activity_current = gl_project.attributes["last_activity_at"]
+        if language_cache.get(gl_project.id):
+            last_activity_cached, \
+                language_items = language_cache[gl_project.id]
+            """get timedelta from human string -> '14 days'
+            always refers to a reference from now to the past.
+            We want: last_activity_cached + 14 days"""
+            to_add = maya.now() - maya.when(MIN_CACHE_TIME)
+            last_activity_cached = MayaDT.from_iso8601(last_activity_cached)
+            last_activity_current = MayaDT.from_iso8601(last_activity_current)
+
+            if last_activity_cached + to_add >= last_activity_current:
+                logger.debug(f"Using cache for project {gl_project.name}")
+                return language_items
+
+        """runs function normally, in-case no cache or cache is invalid"""
+        languages = func(*args, **kwargs)
+        """cache result"""
+        language_cache[gl_project.id] = (
+            last_activity_current,
+            list(languages)
+        )
+        return languages
+    return wrapper_decorator
 
 
 class LanguageMetrics:
@@ -125,6 +162,10 @@ class LanguageScanner:
         self.projects_no_language = 0
         self.ignored_projects = ignored_projects
 
+    @memoize
+    def project_languages(self, gl_project):
+        return gl_project.languages().items()
+
     def scan(self, gl_project):
         if self.ignored_projects and \
                 gl_project.id in self.ignored_projects:
@@ -135,7 +176,9 @@ class LanguageScanner:
 
         try:
             found = False
-            for language_name, percentage in gl_project.languages().items():
+            for language_name, percentage in self.project_languages(
+                gl_project
+            ):
                 found = True
                 self.metrics_collector.add(language_name, percentage)
             if found:
@@ -301,6 +344,13 @@ def main():
         nargs="+",
         type=int,
     )
+    arg_parser.add_argument(
+        "--cache",
+        default=None,
+        required=False,
+        help="Cache file to use",
+        type=str,
+    )
 
     arguments = vars(arg_parser.parse_args())
     check_env_variables()
@@ -315,6 +365,16 @@ def main():
     except GitlabAuthenticationError:
         exit("You're not authorized to access this GitLab "
              "instance.\nPlease check your access token.")
+    cache_file = arguments.get("cache")
+    global language_cache
+    if cache_file and os.path.exists(cache_file):
+        with open(cache_file, "rb") as f:
+            try:
+                language_cache = pickle.load(f)
+                logger.info("Cache loaded")
+            except UnpicklingError:
+                logger.error("Could not restore cache")
+
     ignored_groups = arguments.get("ignore_groups")
     gl_helper = GitLabHelper(gl)
     ignored_projects = None
@@ -348,6 +408,12 @@ def main():
             args=additional_args_dict
         )
 
+    if cache_file:
+        with open(cache_file, 'wb') as f:
+            pickle.dump(language_cache, f)
+            logger.info("Cache saved")
+
 
 if __name__ == "__main__":
+    language_cache = dict()  # project_id: (last_activity_at, language_items)
     main()

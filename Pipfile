@@ -10,6 +10,7 @@ flake8 = "*"
 [packages]
 python-gitlab = "*"
 prometheus_client = "*"
+maya = "*"
 
 [scripts]
 start = "python gitlab_languages.py --projectlimit 10"
