@@ -89,118 +89,62 @@ The output will look something like this:
 ```plain
 metrics.txt
 
-# HELP total_unknown_languages Unknown languages
-# TYPE total_unknown_languages gauge
-total_unknown_languages 0.0
-# HELP Ruby Ruby
-# TYPE Ruby gauge
-Ruby 1.6042222222222224
-# HELP JavaScript JavaScript
-# TYPE JavaScript gauge
-JavaScript 16.529111111111114
-# HELP HTML HTML
-# TYPE HTML gauge
-HTML 4.456222222222222
-# HELP Vue Vue
-# TYPE Vue gauge
-Vue 0.08822222222222223
-# HELP CSS CSS
-# TYPE CSS gauge
-CSS 0.851111111111111
-# HELP Shell Shell
-# TYPE Shell gauge
-Shell 0.22911111111111107
-# HELP Clojure Clojure
-# TYPE Clojure gauge
-Clojure 0.0
-# HELP Python Python
-# TYPE Python gauge
-Python 35.05222222222222
-# HELP TeX TeX
-# TYPE TeX gauge
-TeX 6.637777777777777
-# HELP Java Java
-# TYPE Java gauge
-Java 22.18177777777778
-# HELP Rust Rust
-# TYPE Rust gauge
-Rust 2.2222222222222223
-# HELP PHP PHP
-# TYPE PHP gauge
-PHP 3.172888888888889
-# HELP Kotlin Kotlin
-# TYPE Kotlin gauge
-Kotlin 2.2064444444444447
-# HELP Hack Hack
-# TYPE Hack gauge
-Hack 1.830888888888889
-# HELP TypeScript TypeScript
-# TYPE TypeScript gauge
-TypeScript 1.456888888888889
-# HELP C C
-# TYPE C gauge
-C 0.5948888888888889
-# HELP PLSQL PLSQL
-# TYPE PLSQL gauge
-PLSQL 0.4702222222222222
-# HELP Cplusplus Cplusplus
-# TYPE Cplusplus gauge
-Cplusplus 0.3168888888888889
-# HELP Makefile Makefile
-# TYPE Makefile gauge
-Makefile 0.03488888888888889
-# HELP Roff Roff
-# TYPE Roff gauge
-Roff 0.02711111111111111
-# HELP Perl Perl
-# TYPE Perl gauge
-Perl 0.018666666666666665
-# HELP M4 M4
-# TYPE M4 gauge
-M4 0.008222222222222223
-# HELP Csharp Csharp
-# TYPE Csharp gauge
-Csharp 0.005111111111111111
-# HELP Pascal Pascal
-# TYPE Pascal gauge
-Pascal 0.0011111111111111111
-# HELP ASP ASP
-# TYPE ASP gauge
-ASP 0.0006666666666666666
-# HELP NSIS NSIS
-# TYPE NSIS gauge
-NSIS 0.0006666666666666666
-# HELP Ada Ada
-# TYPE Ada gauge
-Ada 0.0006666666666666666
-# HELP CMake CMake
-# TYPE CMake gauge
-CMake 0.00044444444444444447
-# HELP PureBasic PureBasic
-# TYPE PureBasic gauge
-PureBasic 0.00044444444444444447
-# HELP PLpgSQL PLpgSQL
-# TYPE PLpgSQL gauge
-PLpgSQL 0.00022222222222222223
-# HELP ObjectiveminusC ObjectiveminusC
-# TYPE ObjectiveminusC gauge
-ObjectiveminusC 0.00022222222222222223
-# HELP SQLPL SQLPL
-# TYPE SQLPL gauge
-SQLPL 0.0
-# HELP total_languages_scanned Total languages scanned
-# TYPE total_languages_scanned gauge
-total_languages_scanned 32.0
-# HELP total_projects_scanned Total projects scanned
-# TYPE total_projects_scanned gauge
-total_projects_scanned 45.0
-# HELP total_projects_skipped Total projects skipped
-# TYPE total_projects_skipped gauge
-total_projects_skipped 3.0
-# HELP total_groups_scanned Total groups scanned
-# TYPE total_groups_scanned gauge
-total_groups_scanned 0.0
+# HELP languages_percent Languages scanned in percent
+# TYPE languages_percent gauge
+languages_percent{language="Java"} 11.73
+languages_percent{language="CSS"} 1.97
+languages_percent{language="TypeScript"} 3.5
+languages_percent{language="HTML"} 6.14
+languages_percent{language="JavaScript"} 17.16
+languages_percent{language="Python"} 10.4
+languages_percent{language="Modelica"} 3.7
+languages_percent{language="TeX"} 1.64
+languages_percent{language="Shell"} 6.35
+languages_percent{language="Batchfile"} 0.76
+languages_percent{language="HCL"} 7.15
+languages_percent{language="BitBake"} 0.56
+languages_percent{language="C"} 5.25
+languages_percent{language="C++"} 0.72
+languages_percent{language="Matlab"} 2.77
+languages_percent{language="TXL"} 0.05
+languages_percent{language="Objective-C"} 1.48
+languages_percent{language="XSLT"} 1.68
+languages_percent{language="Perl"} 1.71
+languages_percent{language="Ruby"} 0.03
+languages_percent{language="C#"} 10.3
+languages_percent{language="PowerShell"} 0.11
+languages_percent{language="Pascal"} 0.01
+languages_percent{language="ASP"} 0.0
+languages_percent{language="PLpgSQL"} 0.0
+languages_percent{language="Makefile"} 2.06
+languages_percent{language="SQLPL"} 0.0
+languages_percent{language="Puppet"} 0.0
+languages_percent{language="Groovy"} 2.56
+languages_percent{language="M4"} 0.01
+languages_percent{language="Roff"} 0.15
+languages_percent{language="CMake"} 0.01
+languages_percent{language="NSIS"} 0.01
+languages_percent{language="PHP"} 0.0
+languages_percent{language="Go"} 0.0
+languages_percent{language="Smalltalk"} 0.02
+languages_percent{language="Visual Basic"} 0.0
+languages_percent{language="Smarty"} 0.0
+# HELP languages_scanned_total Total languages scanned
+# TYPE languages_scanned_total gauge
+languages_scanned_total 38.0
+# HELP projects_scanned_total Total projects scanned
+# TYPE projects_scanned_total gauge
+projects_scanned_total 61.0
+# HELP projects_skipped_total Total projects skipped
+# TYPE projects_skipped_total gauge
+projects_skipped_total 0.0
+# HELP projects_no_language_total Projects without language detected
+# TYPE projects_no_language_total gauge
+projects_no_language_total 39.0
+# HELP groups_scanned_total Total groups scanned
+# TYPE groups_scanned_total gauge
+groups_scanned_total 0.0
 ```
 
-Run the script via GitLab CI with schedules.
-Then you can add it to your Prometheus instance as data source.
+Run the script via GitLab CI with schedules and export the metrics.txt file as GitLab pages.
+Then you can add it to your Prometheus instance as scrape source.

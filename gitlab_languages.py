@@ -2,7 +2,6 @@ import argparse
 import itertools
 import logging
 import os
-import re
 from pathlib import Path
 from typing import List
 
@@ -16,12 +15,6 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s "
                            "- %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-def translate_language(lang):
-    return lang.replace("#", "sharp")\
-        .replace("+", "plus")\
-        .replace("-", "minus")
 
 
 class LanguageMetrics:
@@ -54,13 +47,13 @@ class MetricsCollector:
             self.metrics[language_name] = LanguageMetrics(percentage)
             logger.info(f"\tFound new language {language_name}")
 
-    def write(self, groups_scanned=0, projects_scanned=0, projects_skipped=0):
+    def write(self,
+              groups_scanned=0,
+              projects_scanned=0,
+              projects_skipped=0,
+              projects_no_language=0):
         total_languages = len(self.metrics.items())
-        unknown_languages_gauge = Gauge(
-            "total_unknown_languages",
-            "Unknown languages",
-            registry=self.registry,
-        )
+
         total_percent = sum([
             float(percent) for _, percent in self.metrics.items()
         ])
@@ -71,47 +64,47 @@ class MetricsCollector:
             for language_name, language in self.metrics.items()
         }
 
+        gauge = Gauge(
+            "languages_percent",
+            "Languages scanned in percent",
+            labelnames=["language"],
+            registry=self.registry,
+        )
+
         for language_name, language in relative_languages.items():
             logger.info(f"Adding {language_name} as Gauge")
-            language_name = translate_language(language_name)
-            language_name = re.sub("\W+", "", language_name)
-            try:
-                gauge = Gauge(
-                    language_name,
-                    language_name,
-                    registry=self.registry,
-                )
-                gauge.set(language)
-            except ValueError:
-                unknown_languages_gauge.inc(language)
-                logger.error(
-                    f"Could not add gauge for language {language_name}"
-                )
-                self.metrics.pop(language_name, None)
+            gauge.labels(language_name).set(round(language, 2))
 
         total_languages_scanned_gauge = Gauge(
-            "total_languages_scanned",
+            "languages_scanned_total",
             "Total languages scanned",
             registry=self.registry,
         )
         total_languages_scanned_gauge.set(total_languages)
 
         project_scanned_gauge = Gauge(
-            "total_projects_scanned",
+            "projects_scanned_total",
             "Total projects scanned",
             registry=self.registry,
         )
         project_scanned_gauge.set(projects_scanned)
 
-        projects_failed_gauge = Gauge(
-            "total_projects_skipped",
+        projects_skipped_gauge = Gauge(
+            "projects_skipped_total",
             "Total projects skipped",
             registry=self.registry,
         )
-        projects_failed_gauge.set(projects_skipped)
+        projects_skipped_gauge.set(projects_skipped)
+
+        projects_no_language_gauge = Gauge(
+            "projects_no_language_total",
+            "Projects without language detected",
+            registry=self.registry,
+        )
+        projects_no_language_gauge.set(projects_no_language)
 
         groups_scanned_gauge = Gauge(
-            "total_groups_scanned",
+            "groups_scanned_total",
             "Total groups scanned",
             registry=self.registry,
         )
@@ -129,12 +122,14 @@ class LanguageScanner:
         self.projects_scanned = 0
         self.groups_scanned = 0
         self.projects_skipped = 0
+        self.projects_no_language = 0
         self.ignored_projects = ignored_projects
 
     def scan(self, gl_project):
         if self.ignored_projects and \
                 gl_project.id in self.ignored_projects:
             logger.info(f"Skipping project {gl_project.name}")
+            self.projects_skipped += 1
             return
         logger.info(f"Scanning project {gl_project.name}")
 
@@ -146,10 +141,11 @@ class LanguageScanner:
             if found:
                 self.projects_scanned += 1
             else:
-                self.projects_skipped += 1
+                self.projects_no_language += 1
+                logger.info(f"\tNo language detected")
         except GitlabGetError as e:
-            self.projects_skipped += 1
-            logger.error(f"Failed to scan project {gl_project.name}")
+            self.projects_no_language += 1
+            logger.info(f"\tNo language detected")
             logger.debug(e.error_message)
 
     def scan_group_projects(self, group_ids, args):
@@ -174,6 +170,8 @@ class LanguageScanner:
         self.metrics_collector.write(
             projects_scanned=self.projects_scanned,
             groups_scanned=self.groups_scanned,
+            projects_skipped=self.projects_skipped,
+            projects_no_language=self.projects_no_language,
         )
 
     def scan_projects(self, limit=None, args=None):
@@ -199,7 +197,9 @@ class LanguageScanner:
             self.scan(project)
         self.metrics_collector.write(
             projects_scanned=self.projects_scanned,
+            groups_scanned=self.groups_scanned,
             projects_skipped=self.projects_skipped,
+            projects_no_language=self.projects_no_language,
         )
 
 
