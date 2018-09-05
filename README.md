@@ -49,11 +49,12 @@ using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#lan
  
 ## usage
 
-```
+```plain
 usage: gitlab_languages [-h] [--projectlimit PROJECTLIMIT]
                         [--args ARGS [ARGS ...]]
                         [--groups GROUPS [GROUPS ...]]
                         [--ignore_groups IGNORE_GROUPS [IGNORE_GROUPS ...]]
+                        [--cache CACHE]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -65,6 +66,7 @@ optional arguments:
                         Scan only certain groups
   --ignore_groups IGNORE_GROUPS [IGNORE_GROUPS ...]
                         Ignore certain groups and their projects
+  --cache CACHE         Cache file to use
 ```
 
 ### additional arguments

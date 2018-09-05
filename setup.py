@@ -46,6 +46,6 @@ setup(
     setup_requires=setup_requirements,
     tests_require=test_requirements,
     url='https://github.com/max-wittig/gitlab_languages',
-    version='1.1.0',
+    version='1.2.0',
     zip_safe=False,
 )
