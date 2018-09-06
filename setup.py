@@ -10,7 +10,8 @@ with open("README.md", "r") as readme_file:
 
 requirements = [
     "prometheus_client>=0.3.1",
-    "python-gitlab>=1.6.0"
+    "python-gitlab>=1.6.0",
+    "maya>=0.5.0",
 ]
 
 setup_requirements = []
@@ -46,6 +47,6 @@ setup(
     setup_requires=setup_requirements,
     tests_require=test_requirements,
     url='https://github.com/max-wittig/gitlab_languages',
-    version='1.2.0',
+    version='1.2.1',
     zip_safe=False,
 )
