@@ -54,6 +54,6 @@ deploy:
     - pip install -U setuptools
     - pip install -U wheel
     - python setup.py sdist bdist_wheel
-    - twine upload -u $TWINE_USERNAME -p $TWINE_PASSWORD dist/*
+    - twine upload --skip-existing -u $TWINE_USERNAME -p $TWINE_PASSWORD dist/*
   only:
     - tags
