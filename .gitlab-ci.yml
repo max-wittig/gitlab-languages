@@ -37,6 +37,11 @@ pages:
       - public
   only:
     - master
+  cache:
+    key: language_cache
+    paths:
+     - language_cache.pickle
+
 
 deploy:
   stage: deploy

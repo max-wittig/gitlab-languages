@@ -14,7 +14,7 @@ prometheus_client = "*"
 maya = "*"
 
 [scripts]
-start = "python gitlab_languages.py --projectlimit 10"
+start = "python gitlab_languages.py --cache language_cache.pickle --args owned=True"
 lint = "flake8 ."
 
 [requires]
