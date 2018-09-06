@@ -1,9 +1,10 @@
 image: python:3.7-stretch
 
 variables:
-  PYPI_UPLOAD_URL: https://upload.pypi.org/legacy/
-  # $PYPI_USER
-  # $PYPI_PASSWORD
+  TWINE_REPOSITORY_URL: https://upload.pypi.org/legacy/
+  # $TWINE_USERNAME
+  # $TWINE_PASSWORD
+
 
 stages:
   - lint
@@ -22,6 +23,8 @@ flake8:
   <<: *install_dependencies
   script:
     - pipenv run lint
+  except:
+    - tags
 
 pages:
   stage: run
@@ -49,10 +52,8 @@ deploy:
   script:
     - pip install -U pip
     - pip install -U setuptools
-    - echo "[pypi]" >> ~/.pypirc
-    - echo "username =" $PYPI_USER >> ~/.pypirc
-    - echo "password =" $PYPI_PASSWORD >> ~/.pypirc
+    - pip install -U wheel
     - python setup.py sdist bdist_wheel
-    - twine upload dist/* -r pypi
+    - twine upload -u $TWINE_USERNAME -p $TWINE_PASSWORD dist/*
   only:
     - tags
