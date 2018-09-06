@@ -47,6 +47,8 @@ deploy:
   stage: deploy
   <<: *install_dependencies
   script:
+    - pip install -U pip
+    - pip install -U setuptools
     - echo "[pypi]" >> ~/.pypirc
     - echo "username =" $PYPI_USER >> ~/.pypirc
     - echo "password =" $PYPI_PASSWORD >> ~/.pypirc
