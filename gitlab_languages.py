@@ -109,7 +109,7 @@ class MetricsCollector:
         )
 
         for language_name, language in relative_languages.items():
-            logger.info(f"Adding {language_name} as Gauge")
+            logger.info(f"Adding {language_name} as label")
             gauge.labels(language_name).set(round(language, 2))
 
         total_languages_scanned_gauge = Gauge(
