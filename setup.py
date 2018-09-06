@@ -26,6 +26,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.6',
     ],
     description="Utility to generate a Prometheus data source "
                 "text file for your GitLab repository "
@@ -47,6 +48,7 @@ setup(
     setup_requires=setup_requirements,
     tests_require=test_requirements,
     url='https://github.com/max-wittig/gitlab_languages',
-    version='1.2.1',
+    version='1.2.2',
     zip_safe=False,
+    python_requires='>3.6.0',
 )

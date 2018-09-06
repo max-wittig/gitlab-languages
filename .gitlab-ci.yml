@@ -1,15 +1,21 @@
 image: python:3.7-stretch
 
+variables:
+  PYPI_UPLOAD_URL: https://upload.pypi.org/legacy/
+  # $PYPI_USER
+  # $PYPI_PASSWORD
+
 stages:
   - lint
   - run
+  - deploy
 
 .install_dependencies: &install_dependencies
   before_script:
     - python3 -m venv venv
     - . venv/bin/activate
     - pip install pipenv
-    - pipenv install --dev
+    - pipenv install --dev --deploy
 
 flake8:
   stage: lint
@@ -31,3 +37,15 @@ pages:
       - public
   only:
     - master
+
+deploy:
+  stage: deploy
+  <<: *install_dependencies
+  script:
+    - echo "[pypi]" >> ~/.pypirc
+    - echo "username =" $PYPI_USER >> ~/.pypirc
+    - echo "password =" $PYPI_PASSWORD >> ~/.pypirc
+    - python setup.py sdist bdist_wheel
+    - twine upload dist/* -r pypi
+  only:
+    - tags

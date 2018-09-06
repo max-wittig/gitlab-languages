@@ -6,6 +6,7 @@ name = "pypi"
 [dev-packages]
 flake8 = "*"
 "pep8-naming" = "*"
+twine = "*"
 
 [packages]
 python-gitlab = "*"
