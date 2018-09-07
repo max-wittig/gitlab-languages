@@ -20,6 +20,7 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s "
                            "- %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+language_cache = dict()  # project_id: (last_activity_at, language_items)
 
 MIN_CACHE_TIME = "14 days"
 
@@ -415,5 +416,4 @@ def main():
 
 
 if __name__ == "__main__":
-    language_cache = dict()  # project_id: (last_activity_at, language_items)
     main()
