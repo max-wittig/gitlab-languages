@@ -16,7 +16,9 @@ requirements = [
 
 setup_requirements = []
 
-test_requirements = []
+test_requirements = [
+    "pycodestyle>=2.4.0",
+]
 
 setup(
     author="Max Wittig",
@@ -48,7 +50,7 @@ setup(
     setup_requires=setup_requirements,
     tests_require=test_requirements,
     url='https://github.com/max-wittig/gitlab_languages',
-    version='1.2.4',
+    version='1.3.0',
     zip_safe=False,
     python_requires='>3.6.0',
 )

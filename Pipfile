@@ -4,9 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [dev-packages]
-flake8 = "*"
-"pep8-naming" = "*"
 twine = "*"
+pycodestyle = "*"
 
 [packages]
 python-gitlab = "*"
@@ -14,8 +13,8 @@ prometheus_client = "*"
 maya = "*"
 
 [scripts]
-start = "python gitlab_languages.py --cache language_cache.pickle --args owned=True"
-lint = "flake8 ."
+start = "python gitlab_languages.py --projectlimit 10 --args owned=True visibility=public --cache cache.json"
+lint = "pycodestyle --exclude=venv/,build/ --show-source ."
 
 [requires]
 python_version = "3.7"

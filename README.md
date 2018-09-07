@@ -16,7 +16,7 @@ using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#lan
 1. Run the program
 
    ```bash
-   gitlab_languages --args owned=True # more info about usage: see below
+   gitlab_languages --cache cache.json --args owned=True # more info about usage: see below
    ```
 
 ## installation from source

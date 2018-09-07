@@ -1,12 +1,13 @@
 import argparse
 import functools
 import itertools
+import json
 import logging
 import os
-import pickle
+from json.decoder import JSONDecodeError
 from pathlib import Path
-from pickle import UnpicklingError
-from typing import List
+from typing import List, Dict, Tuple
+from typing import Union
 
 import gitlab
 import maya
@@ -16,12 +17,16 @@ from maya import MayaDT
 from prometheus_client.core import CollectorRegistry, Gauge
 from prometheus_client.exposition import write_to_textfile
 
-logging.basicConfig(format="%(asctime)s - %(levelname)s "
-                           "- %(message)s", level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s " "- %(message)s", level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-language_cache = dict()  # project_id: (last_activity_at, language_items)
-
+"""{instance_url: {project_id: (last_activity_at, language_items)}}"""
+language_cache: Union[
+    None, Dict[str, Dict[int, Tuple[str, List[Dict[str, float]]]]]
+] = None
+gitlab_url = None
 MIN_CACHE_TIME = "14 days"
 
 
@@ -29,10 +34,16 @@ def memoize(func):
     @functools.wraps(func)
     def wrapper_decorator(*args, **kwargs):
         gl_project = args[1]
+        project_id = str(gl_project.id)
         last_activity_current = gl_project.attributes["last_activity_at"]
-        if language_cache.get(gl_project.id):
-            last_activity_cached, \
-                language_items = language_cache[gl_project.id]
+        global language_cache
+        if language_cache:
+            projects = language_cache.get(gitlab_url)
+        else:
+            projects = dict()
+            language_cache = dict()
+        if projects.get(project_id):
+            last_activity_cached, language_items = projects[project_id]
             """get timedelta from human string -> '14 days'
             always refers to a reference from now to the past.
             We want: last_activity_cached + 14 days"""
@@ -47,11 +58,10 @@ def memoize(func):
         """runs function normally, in-case no cache or cache is invalid"""
         languages = func(*args, **kwargs)
         """cache result"""
-        language_cache[gl_project.id] = (
-            last_activity_current,
-            list(languages)
-        )
+        projects[project_id] = (last_activity_current, list(languages))
+        language_cache[gitlab_url] = projects
         return languages
+
     return wrapper_decorator
 
 
@@ -80,21 +90,23 @@ class MetricsCollector:
     def add(self, language_name, percentage):
         if self.metrics.get(language_name):
             self.metrics[language_name] += LanguageMetrics(percentage)
-            logger.debug(f"Adding {percentage} to {language_name}")  # noqa flake8 E999
+            logger.debug(f"Adding {percentage} to {language_name}")
         else:
             self.metrics[language_name] = LanguageMetrics(percentage)
             logger.info(f"\tFound new language {language_name}")
 
-    def write(self,
-              groups_scanned=0,
-              projects_scanned=0,
-              projects_skipped=0,
-              projects_no_language=0):
+    def write(
+        self,
+        groups_scanned=0,
+        projects_scanned=0,
+        projects_skipped=0,
+        projects_no_language=0,
+    ):
         total_languages = len(self.metrics.items())
 
-        total_percent = sum([
-            float(percent) for _, percent in self.metrics.items()
-        ])
+        total_percent = sum(
+            [float(percent) for _, percent in self.metrics.items()]
+        )
         logger.info(f"{total_percent}% total scanned")
 
         relative_languages = {
@@ -154,7 +166,7 @@ class MetricsCollector:
 
 
 class LanguageScanner:
-    def __init__(self, gl, ignored_projects: List[int]=None):
+    def __init__(self, gl, ignored_projects: List[int] = None):
         self.gl = gl
         self.metrics_collector = MetricsCollector()
         self.projects_scanned = 0
@@ -168,8 +180,7 @@ class LanguageScanner:
         return gl_project.languages().items()
 
     def scan(self, gl_project):
-        if self.ignored_projects and \
-                gl_project.id in self.ignored_projects:
+        if self.ignored_projects and gl_project.id in self.ignored_projects:
             logger.info(f"Skipping project {gl_project.name}")
             self.projects_skipped += 1
             return
@@ -197,16 +208,14 @@ class LanguageScanner:
             try:
                 group = self.gl.groups.get(group_id)
             except GitlabGetError:
-                logger.error(f"Group with id {group_id} does not exist "
-                             f"or no access")
+                logger.error(
+                    f"Group with id {group_id} does not exist " f"or no access"
+                )
                 continue
 
             self.groups_scanned += 1
             for project in group.projects.list(
-                as_list=False,
-                all_available=True,
-                simple=True,
-                **args
+                as_list=False, all_available=True, simple=True, **args
             ):
                 project = self.gl.projects.get(project.id)
                 self.scan(project)
@@ -223,10 +232,7 @@ class LanguageScanner:
             args = {}
 
         projects = self.gl.projects.list(
-            as_list=False,
-            all_available=True,
-            simple=True,
-            **args,
+            as_list=False, all_available=True, simple=True, **args
         )
 
         if limit:
@@ -248,9 +254,7 @@ class LanguageScanner:
 
 
 def check_env_variables():
-    required_variables = [
-        "GITLAB_ACCESS_TOKEN",
-    ]
+    required_variables = ["GITLAB_ACCESS_TOKEN"]
     missing_variables = []
     [
         missing_variables.append(variable)
@@ -294,22 +298,24 @@ class GitLabHelper:
             try:
                 gl_group = self.gl.groups.get(group_id)
             except GitlabGetError:
-                logging.error(f"Could not get group "
-                              f"with ID {group_id}. Skipping")
+                logging.error(
+                    f"Could not get group " f"with ID {group_id}. Skipping"
+                )
                 continue
 
             sub_groups = self.get_subgroups(gl_group, [gl_group])
             for ignored_group in sub_groups:
                 for ignored_project in ignored_group.projects.list(
-                    as_list=False,
-                    all_available=True,
-                    simple=True,
+                    as_list=False, all_available=True, simple=True
                 ):
-                        logging.debug(f"Adding {ignored_project.name}"
-                                      f" to the ignored project list")
-                        projects.append(ignored_project.id)
-        logging.info(f"{len(projects)} projects will be ignored "
-                     f"and not scanned")
+                    logging.debug(
+                        f"Adding {ignored_project.name}"
+                        f" to the ignored project list"
+                    )
+                    projects.append(ignored_project.id)
+        logging.info(
+            f"{len(projects)} projects will be ignored " f"and not scanned"
+        )
         return projects
 
 
@@ -355,25 +361,27 @@ def main():
 
     arguments = vars(arg_parser.parse_args())
     check_env_variables()
+    global gitlab_url
     gitlab_url = os.getenv("GITLAB_URL", "https://gitlab.com")
     logger.info(f"Running on {gitlab_url}")
     gl = gitlab.Gitlab(
-        gitlab_url,
-        private_token=os.getenv("GITLAB_ACCESS_TOKEN")
+        gitlab_url, private_token=os.getenv("GITLAB_ACCESS_TOKEN")
     )
     try:
         gl.auth()
     except GitlabAuthenticationError:
-        exit("You're not authorized to access this GitLab "
-             "instance.\nPlease check your access token.")
+        exit(
+            "You're not authorized to access this GitLab "
+            "instance.\nPlease check your access token."
+        )
     cache_file = arguments.get("cache")
     global language_cache
     if cache_file and os.path.exists(cache_file):
-        with open(cache_file, "rb") as f:
+        with open(cache_file, "r") as f:
             try:
-                language_cache = pickle.load(f)
+                language_cache = json.load(f)
                 logger.info("Cache loaded")
-            except UnpicklingError:
+            except (UnicodeDecodeError, JSONDecodeError):
                 logger.error("Could not restore cache")
 
     ignored_groups = arguments.get("ignore_groups")
@@ -382,8 +390,10 @@ def main():
     if ignored_groups:
         ignored_projects = gl_helper.get_ignored_projects(ignored_groups)
     if ignored_groups:
-        logger.info(f"Ignoring projects from group ids: "
-                    f"{', '.join(map(str, ignored_groups))}")
+        logger.info(
+            f"Ignoring projects from group ids: "
+            f"{', '.join(map(str, ignored_groups))}"
+        )
     scanner = LanguageScanner(gl, ignored_projects)
     additional_args = arguments.get("args")
     additional_args_dict = {}
@@ -398,20 +408,14 @@ def main():
 
     if groups_to_scan:
         """scan only certain groups with id"""
-        scanner.scan_group_projects(
-            groups_to_scan,
-            args=additional_args_dict
-        )
+        scanner.scan_group_projects(groups_to_scan, args=additional_args_dict)
     else:
         """scan everything"""
-        scanner.scan_projects(
-            limit=project_limit,
-            args=additional_args_dict
-        )
+        scanner.scan_projects(limit=project_limit, args=additional_args_dict)
 
     if cache_file:
-        with open(cache_file, 'wb') as f:
-            pickle.dump(language_cache, f)
+        with open(cache_file, "w") as f:
+            json.dump(language_cache, f, indent=2)
             logger.info("Cache saved")
 
 
