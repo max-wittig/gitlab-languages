@@ -12,6 +12,7 @@ requirements = [
     "prometheus_client>=0.3.1",
     "python-gitlab>=1.6.0",
     "maya>=0.5.0",
+    "tqdm>=4.25.0",
 ]
 
 setup_requirements = []
@@ -41,7 +42,8 @@ setup(
     py_modules=["gitlab_languages"],
     entry_points={
         "console_scripts": [
-          "gitlab_languages=gitlab_languages:main"
+          "gitlab_languages=gitlab_languages:main",
+          "gitlab-languages=gitlab_languages:main",
         ],
     },
     keywords='gitlab_languages',
@@ -50,7 +52,7 @@ setup(
     setup_requires=setup_requirements,
     tests_require=test_requirements,
     url='https://github.com/max-wittig/gitlab_languages',
-    version='1.3.0',
+    version='1.4.0',
     zip_safe=False,
-    python_requires='>3.6.0',
+    python_requires='>=3.6.0',
 )

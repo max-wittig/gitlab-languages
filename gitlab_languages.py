@@ -16,12 +16,14 @@ from gitlab.v4.objects import Group
 from maya import MayaDT
 from prometheus_client.core import CollectorRegistry, Gauge
 from prometheus_client.exposition import write_to_textfile
+from tqdm import tqdm
 
 logging.basicConfig(
-    format="%(asctime)s - %(levelname)s " "- %(message)s", level=logging.INFO
+    format="%(asctime)s - %(levelname)s " "- %(message)s",
+    level=logging.WARNING,
 )
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 """{instance_url: {project_id: (last_activity_at, language_items)}}"""
 language_cache: Union[
     None, Dict[str, Dict[int, Tuple[str, List[Dict[str, float]]]]]
@@ -121,9 +123,16 @@ class MetricsCollector:
             registry=self.registry,
         )
 
-        for language_name, language in relative_languages.items():
-            logger.info(f"Adding {language_name} as label")
-            gauge.labels(language_name).set(round(language, 2))
+        language_items = relative_languages.items()
+        with tqdm(language_items, "Languages left to process",
+                  total=len(language_items),
+                  unit="language",
+                  leave=False) as metrics_bar:
+            for language_name, language in language_items:
+                metrics_bar.set_postfix(language=language_name)
+                logger.info(f"Adding {language_name} as label")
+                gauge.labels(language_name).set(round(language, 2))
+                metrics_bar.update()
 
         total_languages_scanned_gauge = Gauge(
             "languages_scanned_total",
@@ -204,21 +213,43 @@ class LanguageScanner:
             logger.debug(e.error_message)
 
     def scan_group_projects(self, group_ids, args):
-        for group_id in group_ids:
-            try:
-                group = self.gl.groups.get(group_id)
-            except GitlabGetError:
-                logger.error(
-                    f"Group with id {group_id} does not exist " f"or no access"
-                )
-                continue
+        with tqdm(
+            group_ids, "Groups left to scan",
+            total=len(group_ids),
+            unit="group",
+            leave=False,
+        ) as group_bar:
+            for group_id in group_ids:
+                try:
+                    group = self.gl.groups.get(group_id)
+                except GitlabGetError:
+                    logger.error(
+                        f"Group with id {group_id} does not exist or no access"
+                    )
+                    continue
+                group_bar.set_postfix(group=group.name)
 
-            self.groups_scanned += 1
-            for project in group.projects.list(
-                as_list=False, all_available=True, simple=True, **args
-            ):
-                project = self.gl.projects.get(project.id)
-                self.scan(project)
+                self.groups_scanned += 1
+                group_projects = group.projects.list(
+                    as_list=False, all_available=True, simple=True, **args
+                )
+
+                with tqdm(
+                    group_projects,
+                    f"Projects in group {group.name} left",
+                    total=group_projects.total,
+                    unit="project",
+                    leave=False,
+                ) as project_bar:
+                    for project in group_projects:
+                        project_bar.set_postfix(
+                            project=project.name,
+                            refresh=True
+                        )
+                        project = self.gl.projects.get(project.id)
+                        self.scan(project)
+                        project_bar.update()
+                group_bar.update()
 
         self.metrics_collector.write(
             projects_scanned=self.projects_scanned,
@@ -238,13 +269,25 @@ class LanguageScanner:
         if limit:
             projects = itertools.islice(projects, limit)
             logger.info(f"Scanning a maximum of {limit} projects")
+            total = limit
         else:
             logger.info("Scanning all projects")
+            total = projects.total
 
         if args:
             logger.info(f"with additional arguments {args}")
-        for project in projects:
-            self.scan(project)
+        with tqdm(
+            projects,
+            "Projects left to scan",
+            total=total,
+            unit="project",
+            leave=False,
+        ) as progress_bar:
+            for project in projects:
+                progress_bar.set_postfix(project=project.name, refresh=True)
+                self.scan(project)
+                progress_bar.update()
+
         self.metrics_collector.write(
             projects_scanned=self.projects_scanned,
             groups_scanned=self.groups_scanned,
@@ -276,8 +319,6 @@ class GitLabHelper:
     def get_group_projects(self, root_group: Group, projects: List[int]):
         for project in root_group.projects.list(as_list=False):
             projects.append(project.id)
-            print(project.name)
-        print(root_group.subgroups.list(all=True))
         for subgroup in root_group.subgroups.list(all=True):
             gl_group = self.gl.groups.get(subgroup.id)
             self.get_group_projects(gl_group, projects)
@@ -287,6 +328,7 @@ class GitLabHelper:
         all_subgroups = main_group.subgroups.list(all=True, all_available=True)
         for subgroup in all_subgroups:
             new_main = self.gl.groups.get(subgroup.id)
+            yield new_main
             groups.append(new_main)
             self.get_subgroups(new_main, groups)
         return groups
@@ -294,29 +336,57 @@ class GitLabHelper:
     def get_ignored_projects(self, group_ids: List[int]) -> List[int]:
         projects = list()
         logging.info("Parsing the ignored projects...")
-        for group_id in group_ids:
-            try:
-                gl_group = self.gl.groups.get(group_id)
-            except GitlabGetError:
-                logging.error(
-                    f"Could not get group " f"with ID {group_id}. Skipping"
-                )
-                continue
-
-            sub_groups = self.get_subgroups(gl_group, [gl_group])
-            for ignored_group in sub_groups:
-                for ignored_project in ignored_group.projects.list(
-                    as_list=False, all_available=True, simple=True
-                ):
-                    logging.debug(
-                        f"Adding {ignored_project.name}"
-                        f" to the ignored project list"
+        with tqdm(
+            group_ids,
+            f"Ignored groups left",
+            total=len(group_ids),
+            unit="group",
+            leave=False,
+        ) as group_bar:
+            for group_id in group_ids:
+                try:
+                    gl_group = self.gl.groups.get(group_id)
+                except GitlabGetError:
+                    logging.error(
+                        f"Could not get group " f"with ID {group_id}. Skipping"
                     )
-                    projects.append(ignored_project.id)
-        logging.info(
-            f"{len(projects)} projects will be ignored " f"and not scanned"
-        )
-        return projects
+                    continue
+                group_bar.set_postfix(group=gl_group.name)
+
+                sub_groups = self.get_subgroups(gl_group, [gl_group])
+                with tqdm(
+                    sub_groups,
+                    f"Ignored subgroups left",
+                    unit="subgroup",
+                    leave=False,
+                ) as sub_groups_bar:
+                    for ignored_group in sub_groups:
+                        sub_groups_bar.set_postfix(subgroup=ignored_group.name)
+                        ignored_projects = ignored_group.projects.list(
+                            as_list=False, all_available=True, simple=True
+                        )
+                        with tqdm(
+                            ignored_projects, "Ignored projects left",
+                            total=ignored_projects.total,
+                            unit="project",
+                            leave=False,
+                        ) as project_bar:
+                            for ignored_project in ignored_projects:
+                                project_bar.set_postfix(
+                                    project=ignored_project.name
+                                )
+                                logging.debug(
+                                    f"Adding {ignored_project.name}"
+                                    f" to the ignored project list"
+                                )
+                                projects.append(ignored_project.id)
+                                project_bar.update()
+                        sub_groups_bar.update()
+                group_bar.update()
+            logging.info(
+                f"{len(projects)} projects will be ignored and not scanned"
+            )
+            return projects
 
 
 def main():

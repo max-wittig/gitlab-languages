@@ -11,6 +11,7 @@ pycodestyle = "*"
 python-gitlab = "*"
 prometheus_client = "*"
 maya = "*"
+tqdm = "*"
 
 [scripts]
 start = "python gitlab_languages.py --projectlimit 10 --args owned=True visibility=public --cache language_cache.json"
