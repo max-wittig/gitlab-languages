@@ -51,7 +51,10 @@ def memoize(func):
         """runs function normally, in-case no cache or cache is invalid"""
         languages = func(*args, **kwargs)
         """cache result"""
-        projects[project_id] = (gl_project.attributes["last_activity_at"], list(languages))
+        projects[project_id] = (
+            gl_project.attributes["last_activity_at"],
+            list(languages)
+        )
         language_cache[gitlab_url] = projects
         return languages
 
@@ -98,7 +101,10 @@ class MetricsCollector:
     ):
         total_languages = len(self.metrics.items())
 
-        total_percent = sum([float(percent) for _, percent in self.metrics.items()])
+        total_percent = sum(
+            [float(percent)
+                for _, percent in self.metrics.items()]
+        )
         logger.debug(f"{total_percent}% total scanned")
 
         relative_languages = {
@@ -120,17 +126,23 @@ class MetricsCollector:
             gauge.labels(language_name).set(round(language, 2))
 
         total_languages_scanned_gauge = Gauge(
-            "languages_scanned_total", "Total languages scanned", registry=self.registry
+            "languages_scanned_total",
+            "Total languages scanned",
+            registry=self.registry
         )
         total_languages_scanned_gauge.set(total_languages)
 
         project_scanned_gauge = Gauge(
-            "projects_scanned_total", "Total projects scanned", registry=self.registry
+            "projects_scanned_total",
+            "Total projects scanned",
+            registry=self.registry
         )
         project_scanned_gauge.set(projects_scanned)
 
         projects_skipped_gauge = Gauge(
-            "projects_skipped_total", "Total projects skipped", registry=self.registry
+            "projects_skipped_total",
+            "Total projects skipped",
+            registry=self.registry
         )
         projects_skipped_gauge.set(projects_skipped)
 
@@ -142,7 +154,9 @@ class MetricsCollector:
         projects_no_language_gauge.set(projects_no_language)
 
         groups_scanned_gauge = Gauge(
-            "groups_scanned_total", "Total groups scanned", registry=self.registry
+            "groups_scanned_total",
+            "Total groups scanned",
+            registry=self.registry
         )
         groups_scanned_gauge.set(groups_scanned)
 
@@ -179,7 +193,8 @@ class LanguageScanner:
 
         try:
             found = False
-            for language_name, percentage in self.project_languages(gl_project):
+            for language_name, percentage in \
+                    self.project_languages(gl_project):
                 found = True
                 self.metrics_collector.add(language_name, percentage)
             if found:
@@ -197,7 +212,10 @@ class LanguageScanner:
             try:
                 group = self.gl.groups.get(group_id)
             except GitlabGetError:
-                logger.error(f"Group with id {group_id} does not exist or no access")
+                logger.error(
+                    f"Group with id {group_id} "
+                    f"does not exist or no access"
+                )
                 continue
             self.groups_scanned += 1
             projects = self.gl_helper.get_group_projects(group)
@@ -278,7 +296,10 @@ class GitLabHelper:
             try:
                 gl_group = self.gl.groups.get(group_id)
             except GitlabGetError:
-                logging.error(f"Could not get group with ID {group_id}. Skipping")
+                logging.error(
+                    f"Could not get group "
+                    f"with ID {group_id}. Skipping"
+                )
                 continue
 
             sub_groups = self.get_subgroups(gl_group)
@@ -288,10 +309,14 @@ class GitLabHelper:
                 )
                 for ignored_project in ignored_projects:
                     logging.debug(
-                        f"Adding {ignored_project.name}" f" to the ignored project list"
+                        f"Adding {ignored_project.name} "
+                        f"to the ignored project list"
                     )
                     projects.append(ignored_project.id)
-        logging.info(f"{len(projects)} projects will be ignored and not scanned")
+        logging.info(
+            f"{len(projects)} projects will "
+            f"be ignored and not scanned"
+        )
         return projects
 
 
@@ -347,7 +372,10 @@ def main():
     global gitlab_url
     gitlab_url = os.getenv("GITLAB_URL", "https://gitlab.com")
     logger.info(f"Running on {gitlab_url}")
-    gl = gitlab.Gitlab(gitlab_url, private_token=os.getenv("GITLAB_ACCESS_TOKEN"))
+    gl = gitlab.Gitlab(
+        gitlab_url,
+        private_token=os.getenv("GITLAB_ACCESS_TOKEN")
+    )
     try:
         gl.auth()
     except GitlabAuthenticationError:
