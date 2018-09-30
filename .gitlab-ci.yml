@@ -60,7 +60,7 @@ deploy:
     - . test/bin/activate
     - pip install -U dist/gitlab_languages-*.whl
     - gitlab_languages -h
-    - gitlab_languages --cache test.json --projectlimit 1 --args owned=True
+    - gitlab_languages --cache test.json --project_limit 1 --args owned=True
     - deactivate
     - . venv/bin/activate
     - twine upload --skip-existing -u $TWINE_USERNAME -p $TWINE_PASSWORD dist/*

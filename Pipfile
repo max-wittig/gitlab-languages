@@ -13,7 +13,7 @@ prometheus_client = "*"
 maya = "*"
 
 [scripts]
-start = "python gitlab_languages.py --projectlimit 10 --args owned=True visibility=public --cache language_cache.json"
+start = "python gitlab_languages.py --project_limit 10 --args owned=True visibility=public --cache language_cache.json"
 lint = "pycodestyle --exclude=venv/,build/ --show-source ."
 
 [requires]
