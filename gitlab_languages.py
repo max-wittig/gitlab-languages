@@ -6,11 +6,9 @@ import logging
 import os
 from json.decoder import JSONDecodeError
 from pathlib import Path
-from typing import List, Dict, Tuple
-from typing import Union
+from typing import List, Dict, Tuple, Union
 
 import gitlab
-import maya
 from gitlab.exceptions import GitlabGetError, GitlabAuthenticationError
 from gitlab.v4.objects import Group
 from maya import MayaDT
@@ -27,7 +25,6 @@ language_cache: Union[
     None, Dict[str, Dict[int, Tuple[str, List[Dict[str, float]]]]]
 ] = None
 gitlab_url = None
-MIN_CACHE_TIME = "14 days"
 
 
 def memoize(func):
@@ -44,21 +41,17 @@ def memoize(func):
             language_cache = dict()
         if projects.get(project_id):
             last_activity_cached, language_items = projects[project_id]
-            """get timedelta from human string -> '14 days'
-            always refers to a reference from now to the past.
-            We want: last_activity_cached + 14 days"""
-            to_add = maya.now() - maya.when(MIN_CACHE_TIME)
             last_activity_cached = MayaDT.from_iso8601(last_activity_cached)
             last_activity_current = MayaDT.from_iso8601(last_activity_current)
 
-            if last_activity_cached + to_add >= last_activity_current:
+            if last_activity_cached >= last_activity_current:
                 logger.debug(f"Using cache for project {gl_project.name}")
                 return language_items
 
         """runs function normally, in-case no cache or cache is invalid"""
         languages = func(*args, **kwargs)
         """cache result"""
-        projects[project_id] = (last_activity_current, list(languages))
+        projects[project_id] = (gl_project.attributes["last_activity_at"], list(languages))
         language_cache[gitlab_url] = projects
         return languages
 
@@ -93,10 +86,11 @@ class MetricsCollector:
             logger.debug(f"Adding {percentage} to {language_name}")
         else:
             self.metrics[language_name] = LanguageMetrics(percentage)
-            logger.info(f"\tFound new language {language_name}")
+            logger.debug(f"\tFound new language {language_name}")
 
     def write(
         self,
+        path,
         groups_scanned=0,
         projects_scanned=0,
         projects_skipped=0,
@@ -104,10 +98,8 @@ class MetricsCollector:
     ):
         total_languages = len(self.metrics.items())
 
-        total_percent = sum(
-            [float(percent) for _, percent in self.metrics.items()]
-        )
-        logger.info(f"{total_percent}% total scanned")
+        total_percent = sum([float(percent) for _, percent in self.metrics.items()])
+        logger.debug(f"{total_percent}% total scanned")
 
         relative_languages = {
             language_name: (float(language) / projects_scanned)
@@ -121,28 +113,24 @@ class MetricsCollector:
             registry=self.registry,
         )
 
-        for language_name, language in relative_languages.items():
+        language_items = relative_languages.items()
+
+        for language_name, language in language_items:
             logger.info(f"Adding {language_name} as label")
             gauge.labels(language_name).set(round(language, 2))
 
         total_languages_scanned_gauge = Gauge(
-            "languages_scanned_total",
-            "Total languages scanned",
-            registry=self.registry,
+            "languages_scanned_total", "Total languages scanned", registry=self.registry
         )
         total_languages_scanned_gauge.set(total_languages)
 
         project_scanned_gauge = Gauge(
-            "projects_scanned_total",
-            "Total projects scanned",
-            registry=self.registry,
+            "projects_scanned_total", "Total projects scanned", registry=self.registry
         )
         project_scanned_gauge.set(projects_scanned)
 
         projects_skipped_gauge = Gauge(
-            "projects_skipped_total",
-            "Total projects skipped",
-            registry=self.registry,
+            "projects_skipped_total", "Total projects skipped", registry=self.registry
         )
         projects_skipped_gauge.set(projects_skipped)
 
@@ -154,20 +142,23 @@ class MetricsCollector:
         projects_no_language_gauge.set(projects_no_language)
 
         groups_scanned_gauge = Gauge(
-            "groups_scanned_total",
-            "Total groups scanned",
-            registry=self.registry,
+            "groups_scanned_total", "Total groups scanned", registry=self.registry
         )
         groups_scanned_gauge.set(groups_scanned)
 
-        path = Path.cwd() / "metrics.txt"
-        logger.info(f"Writing languages to {path}")
-        write_to_textfile(path, self.registry)
+        if Path(path).is_dir():
+            path = Path(path) / "metrics.txt"
+        if Path.exists(Path(path).parents[0]):
+            write_to_textfile(path, self.registry)
+            logger.info(f"Metrics written to {path}")
+        else:
+            logger.error(f"Could not write metrics to {path}")
 
 
 class LanguageScanner:
-    def __init__(self, gl, ignored_projects: List[int] = None):
-        self.gl = gl
+    def __init__(self, gl_helper, ignored_projects: List[int] = None):
+        self.gl_helper = gl_helper
+        self.gl = gl_helper.gl
         self.metrics_collector = MetricsCollector()
         self.projects_scanned = 0
         self.groups_scanned = 0
@@ -188,39 +179,35 @@ class LanguageScanner:
 
         try:
             found = False
-            for language_name, percentage in self.project_languages(
-                gl_project
-            ):
+            for language_name, percentage in self.project_languages(gl_project):
                 found = True
                 self.metrics_collector.add(language_name, percentage)
             if found:
                 self.projects_scanned += 1
             else:
                 self.projects_no_language += 1
-                logger.info(f"\tNo language detected")
+                logger.debug(f"\tNo language detected")
         except GitlabGetError as e:
             self.projects_no_language += 1
-            logger.info(f"\tNo language detected")
-            logger.debug(e.error_message)
+            logger.debug(f"\tNo language detected")
+            logger.error(e.error_message)
 
-    def scan_group_projects(self, group_ids, args):
+    def scan_group_projects(self, group_ids):
         for group_id in group_ids:
             try:
                 group = self.gl.groups.get(group_id)
             except GitlabGetError:
-                logger.error(
-                    f"Group with id {group_id} does not exist " f"or no access"
-                )
+                logger.error(f"Group with id {group_id} does not exist or no access")
                 continue
-
             self.groups_scanned += 1
-            for project in group.projects.list(
-                as_list=False, all_available=True, simple=True, **args
-            ):
+            projects = self.gl_helper.get_group_projects(group)
+            for project in projects:
                 project = self.gl.projects.get(project.id)
                 self.scan(project)
 
+    def write_metrics(self, path=Path.cwd() / "metrics.txt"):
         self.metrics_collector.write(
+            path=path,
             projects_scanned=self.projects_scanned,
             groups_scanned=self.groups_scanned,
             projects_skipped=self.projects_skipped,
@@ -232,25 +219,20 @@ class LanguageScanner:
             args = {}
 
         projects = self.gl.projects.list(
-            as_list=False, all_available=True, simple=True, **args
+            as_list=False, all_available=True, simple=True, **args,
         )
 
         if limit:
             projects = itertools.islice(projects, limit)
             logger.info(f"Scanning a maximum of {limit} projects")
         else:
-            logger.info("Scanning all projects")
+            logger.info(f"Scanning {projects.total} projects")
 
         if args:
             logger.info(f"with additional arguments {args}")
+
         for project in projects:
             self.scan(project)
-        self.metrics_collector.write(
-            projects_scanned=self.projects_scanned,
-            groups_scanned=self.groups_scanned,
-            projects_skipped=self.projects_skipped,
-            projects_no_language=self.projects_no_language,
-        )
 
 
 def check_env_variables():
@@ -273,23 +255,21 @@ class GitLabHelper:
     def __init__(self, gl: gitlab.Gitlab):
         self.gl = gl
 
-    def get_group_projects(self, root_group: Group, projects: List[int]):
+    def get_group_projects(self, root_group: Group):
         for project in root_group.projects.list(as_list=False):
-            projects.append(project.id)
-            print(project.name)
-        print(root_group.subgroups.list(all=True))
-        for subgroup in root_group.subgroups.list(all=True):
+            yield project
+        for subgroup in root_group.subgroups.list(as_list=False):
             gl_group = self.gl.groups.get(subgroup.id)
-            self.get_group_projects(gl_group, projects)
-        return projects
+            self.get_group_projects(gl_group)
 
-    def get_subgroups(self, main_group, groups):
-        all_subgroups = main_group.subgroups.list(all=True, all_available=True)
+    def get_subgroups(self, main_group):
+        all_subgroups = main_group.subgroups.list(
+            all=True, all_available=True, simple=True
+        )
         for subgroup in all_subgroups:
             new_main = self.gl.groups.get(subgroup.id)
-            groups.append(new_main)
-            self.get_subgroups(new_main, groups)
-        return groups
+            yield new_main
+            self.get_subgroups(new_main)
 
     def get_ignored_projects(self, group_ids: List[int]) -> List[int]:
         projects = list()
@@ -298,31 +278,27 @@ class GitLabHelper:
             try:
                 gl_group = self.gl.groups.get(group_id)
             except GitlabGetError:
-                logging.error(
-                    f"Could not get group " f"with ID {group_id}. Skipping"
-                )
+                logging.error(f"Could not get group with ID {group_id}. Skipping")
                 continue
 
-            sub_groups = self.get_subgroups(gl_group, [gl_group])
+            sub_groups = self.get_subgroups(gl_group)
             for ignored_group in sub_groups:
-                for ignored_project in ignored_group.projects.list(
+                ignored_projects = ignored_group.projects.list(
                     as_list=False, all_available=True, simple=True
-                ):
+                )
+                for ignored_project in ignored_projects:
                     logging.debug(
-                        f"Adding {ignored_project.name}"
-                        f" to the ignored project list"
+                        f"Adding {ignored_project.name}" f" to the ignored project list"
                     )
                     projects.append(ignored_project.id)
-        logging.info(
-            f"{len(projects)} projects will be ignored " f"and not scanned"
-        )
+        logging.info(f"{len(projects)} projects will be ignored and not scanned")
         return projects
 
 
 def main():
     arg_parser = argparse.ArgumentParser("gitlab_languages")
     arg_parser.add_argument(
-        "--projectlimit",
+        "--project_limit",
         default=None,
         required=False,
         help="Set project limit to scan",
@@ -358,15 +334,20 @@ def main():
         help="Cache file to use",
         type=str,
     )
+    arg_parser.add_argument(
+        "-o",
+        "--output",
+        required=False,
+        help="Location of the metrics file output",
+        type=str,
+    )
 
     arguments = vars(arg_parser.parse_args())
     check_env_variables()
     global gitlab_url
     gitlab_url = os.getenv("GITLAB_URL", "https://gitlab.com")
     logger.info(f"Running on {gitlab_url}")
-    gl = gitlab.Gitlab(
-        gitlab_url, private_token=os.getenv("GITLAB_ACCESS_TOKEN")
-    )
+    gl = gitlab.Gitlab(gitlab_url, private_token=os.getenv("GITLAB_ACCESS_TOKEN"))
     try:
         gl.auth()
     except GitlabAuthenticationError:
@@ -394,7 +375,8 @@ def main():
             f"Ignoring projects from group ids: "
             f"{', '.join(map(str, ignored_groups))}"
         )
-    scanner = LanguageScanner(gl, ignored_projects)
+
+    scanner = LanguageScanner(gl_helper, ignored_projects)
     additional_args = arguments.get("args")
     additional_args_dict = {}
     if additional_args:
@@ -402,17 +384,17 @@ def main():
             entry = pair.split("=")
             additional_args_dict[entry[0]] = entry[1]
 
-    project_limit = arguments.get("projectlimit")
+    project_limit = arguments.get("project_limit")
     project_limit = int(project_limit) if project_limit else None
     groups_to_scan = arguments.get("groups")
 
     if groups_to_scan:
         """scan only certain groups with id"""
-        scanner.scan_group_projects(groups_to_scan, args=additional_args_dict)
+        scanner.scan_group_projects(groups_to_scan)
     else:
         """scan everything"""
         scanner.scan_projects(limit=project_limit, args=additional_args_dict)
-
+    scanner.write_metrics(arguments.get("output"))
     if cache_file:
         with open(cache_file, "w") as f:
             json.dump(language_cache, f, indent=2)
