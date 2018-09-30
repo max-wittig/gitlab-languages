@@ -1,5 +1,7 @@
 # gitlab_languages
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e2f3eb1782f949a993af877242b2b699)](https://app.codacy.com/app/max-wittig/gitlab-languages?utm_source=github.com&utm_medium=referral&utm_content=max-wittig/gitlab-languages&utm_campaign=Badge_Grade_Dashboard)
+
 Utility to generate a Prometheus data source text file for your GitLab instance
 using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#languages)
 
