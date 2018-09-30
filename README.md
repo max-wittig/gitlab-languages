@@ -1,5 +1,9 @@
 # gitlab_languages
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e2f3eb1782f949a993af877242b2b699)](https://app.codacy.com/app/max-wittig/gitlab-languages?utm_source=github.com&utm_medium=referral&utm_content=max-wittig/gitlab-languages&utm_campaign=Badge_Grade_Dashboard)
+[![pipeline status](https://gitlab.com/max-wittig/gitlab_languages/badges/master/pipeline.svg)](https://gitlab.com/max-wittig/gitlab_languages/commits/master)
+[![PyPI - License](https://img.shields.io/pypi/l/gitlab-languages.svg)](https://github.com/max-wittig/gitlab-languages/blob/master/LICENSE)
+
 Utility to generate a Prometheus data source text file for your GitLab instance
 using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#languages)
 
@@ -50,15 +54,15 @@ using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#lan
 ## usage
 
 ```plain
-usage: gitlab_languages [-h] [--projectlimit PROJECTLIMIT]
+usage: gitlab_languages [-h] [--project_limit PROJECT_LIMIT]
                         [--args ARGS [ARGS ...]]
                         [--groups GROUPS [GROUPS ...]]
                         [--ignore_groups IGNORE_GROUPS [IGNORE_GROUPS ...]]
-                        [--cache CACHE]
+                        [--cache CACHE] [-o OUTPUT]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --projectlimit PROJECTLIMIT
+  --project_limit PROJECT_LIMIT
                         Set project limit to scan
   --args ARGS [ARGS ...]
                         Provide custom args to the GitLab API
@@ -67,6 +71,8 @@ optional arguments:
   --ignore_groups IGNORE_GROUPS [IGNORE_GROUPS ...]
                         Ignore certain groups and their projects
   --cache CACHE         Cache file to use
+  -o OUTPUT, --output OUTPUT
+                        Location of the metrics file output
 ```
 
 ### additional arguments
