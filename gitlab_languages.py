@@ -365,6 +365,7 @@ def main():
         required=False,
         help="Location of the metrics file output",
         type=str,
+        default=Path.cwd() / "metrics.txt"
     )
 
     arguments = vars(arg_parser.parse_args())
@@ -422,7 +423,7 @@ def main():
     else:
         """scan everything"""
         scanner.scan_projects(limit=project_limit, args=additional_args_dict)
-    scanner.write_metrics(arguments.get("output"))
+    scanner.write_metrics(path=arguments.get("output"))
     if cache_file:
         with open(cache_file, "w") as f:
             json.dump(language_cache, f, indent=2)
