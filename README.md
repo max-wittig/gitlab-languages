@@ -7,7 +7,7 @@
 Utility to generate a Prometheus data source text file for your GitLab instance
 using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#languages)
 
-![Demo](https://cdn.rawgit.com/max-wittig/gitlab_languages/master/images/termtosvg_jai2cshl.svg)
+![Demo](https://max-wittig.github.io/gitlab-languages/images/termtosvg_jai2cshl.svg)
 
 ## installation from PyPI
 
