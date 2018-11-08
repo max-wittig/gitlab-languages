@@ -17,4 +17,5 @@ start = "python gitlab_languages.py --project_limit 10 --args owned=True visibil
 lint = "pycodestyle --exclude=venv/,build/ --show-source ."
 
 [requires]
-python_version = "3.7"
+python_version = "3.7.0"
+

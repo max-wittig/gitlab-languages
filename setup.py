@@ -50,7 +50,7 @@ setup(
     setup_requires=setup_requirements,
     tests_require=test_requirements,
     url='https://github.com/max-wittig/gitlab_languages',
-    version='1.4.0',
+    version='1.4.1',
     zip_safe=False,
     python_requires='>3.6.0',
 )
