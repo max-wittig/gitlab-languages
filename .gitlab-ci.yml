@@ -18,7 +18,7 @@ stages:
     - pip install pipenv
     - pipenv install --dev --deploy
 
-pycodestyle:
+black:
   stage: lint
   script:
     - pip3 install -U black
