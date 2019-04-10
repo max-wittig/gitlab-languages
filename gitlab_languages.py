@@ -4,10 +4,12 @@ import itertools
 import json
 import logging
 import os
+import multiprocessing
 from json.decoder import JSONDecodeError
 from pathlib import Path
 from typing import List, Dict, Tuple, Union
-
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import as_completed
 import gitlab
 from gitlab.exceptions import GitlabGetError, GitlabAuthenticationError
 from gitlab.v4.objects import Group
@@ -25,6 +27,7 @@ language_cache: Union[
     None, Dict[str, Dict[int, Tuple[str, List[Dict[str, float]]]]]
 ] = None
 gitlab_url = None
+worker_count = multiprocessing.cpu_count() * 2
 
 
 def memoize(func):
@@ -53,7 +56,7 @@ def memoize(func):
         """cache result"""
         projects[project_id] = (
             gl_project.attributes["last_activity_at"],
-            list(languages)
+            list(languages),
         )
         language_cache[gitlab_url] = projects
         return languages
@@ -101,10 +104,7 @@ class MetricsCollector:
     ):
         total_languages = len(self.metrics.items())
 
-        total_percent = sum(
-            [float(percent)
-                for _, percent in self.metrics.items()]
-        )
+        total_percent = sum([float(percent) for _, percent in self.metrics.items()])
         logger.debug(f"{total_percent}% total scanned")
 
         relative_languages = {
@@ -126,23 +126,17 @@ class MetricsCollector:
             gauge.labels(language_name).set(round(language, 2))
 
         total_languages_scanned_gauge = Gauge(
-            "languages_scanned_total",
-            "Total languages scanned",
-            registry=self.registry
+            "languages_scanned_total", "Total languages scanned", registry=self.registry
         )
         total_languages_scanned_gauge.set(total_languages)
 
         project_scanned_gauge = Gauge(
-            "projects_scanned_total",
-            "Total projects scanned",
-            registry=self.registry
+            "projects_scanned_total", "Total projects scanned", registry=self.registry
         )
         project_scanned_gauge.set(projects_scanned)
 
         projects_skipped_gauge = Gauge(
-            "projects_skipped_total",
-            "Total projects skipped",
-            registry=self.registry
+            "projects_skipped_total", "Total projects skipped", registry=self.registry
         )
         projects_skipped_gauge.set(projects_skipped)
 
@@ -154,9 +148,7 @@ class MetricsCollector:
         projects_no_language_gauge.set(projects_no_language)
 
         groups_scanned_gauge = Gauge(
-            "groups_scanned_total",
-            "Total groups scanned",
-            registry=self.registry
+            "groups_scanned_total", "Total groups scanned", registry=self.registry
         )
         groups_scanned_gauge.set(groups_scanned)
 
@@ -193,8 +185,7 @@ class LanguageScanner:
 
         try:
             found = False
-            for language_name, percentage in \
-                    self.project_languages(gl_project):
+            for language_name, percentage in self.project_languages(gl_project):
                 found = True
                 self.metrics_collector.add(language_name, percentage)
             if found:
@@ -210,18 +201,18 @@ class LanguageScanner:
     def scan_group_projects(self, group_ids):
         for group_id in group_ids:
             try:
-                group = self.gl.groups.get(group_id)
+                group = self.gl.groups.get(group_id, simple=True)
             except GitlabGetError:
                 logger.error(
-                    f"Group with id {group_id} "
-                    f"does not exist or no access"
+                    f"Group with id {group_id} " f"does not exist or no access"
                 )
                 continue
             self.groups_scanned += 1
             projects = self.gl_helper.get_group_projects(group)
-            for project in projects:
-                project = self.gl.projects.get(project.id)
-                self.scan(project)
+            with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                for project in projects:
+                    project = self.gl.projects.get(project.id, simple=True)
+                    executor.submit(self.scan, project)
 
     def write_metrics(self, path=Path.cwd() / "metrics.txt"):
         self.metrics_collector.write(
@@ -237,7 +228,7 @@ class LanguageScanner:
             args = {}
 
         projects = self.gl.projects.list(
-            as_list=False, all_available=True, simple=True, **args,
+            as_list=False, all_available=True, simple=True, **args
         )
 
         if limit:
@@ -249,8 +240,9 @@ class LanguageScanner:
         if args:
             logger.info(f"with additional arguments {args}")
 
-        for project in projects:
-            self.scan(project)
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            for project in projects:
+                executor.submit(self.scan, project)
 
 
 def check_env_variables():
@@ -296,10 +288,7 @@ class GitLabHelper:
             try:
                 gl_group = self.gl.groups.get(group_id)
             except GitlabGetError:
-                logging.error(
-                    f"Could not get group "
-                    f"with ID {group_id}. Skipping"
-                )
+                logging.error(f"Could not get group " f"with ID {group_id}. Skipping")
                 continue
 
             sub_groups = self.get_subgroups(gl_group)
@@ -309,14 +298,10 @@ class GitLabHelper:
                 )
                 for ignored_project in ignored_projects:
                     logging.debug(
-                        f"Adding {ignored_project.name} "
-                        f"to the ignored project list"
+                        f"Adding {ignored_project.name} " f"to the ignored project list"
                     )
                     projects.append(ignored_project.id)
-        logging.info(
-            f"{len(projects)} projects will "
-            f"be ignored and not scanned"
-        )
+        logging.info(f"{len(projects)} projects will " f"be ignored and not scanned")
         return projects
 
 
@@ -353,11 +338,7 @@ def main():
         type=int,
     )
     arg_parser.add_argument(
-        "--cache",
-        default=None,
-        required=False,
-        help="Cache file to use",
-        type=str,
+        "--cache", default=None, required=False, help="Cache file to use", type=str
     )
     arg_parser.add_argument(
         "-o",
@@ -365,7 +346,7 @@ def main():
         required=False,
         help="Location of the metrics file output",
         type=str,
-        default=Path.cwd() / "metrics.txt"
+        default=Path.cwd() / "metrics.txt",
     )
 
     arguments = vars(arg_parser.parse_args())
@@ -374,8 +355,7 @@ def main():
     gitlab_url = os.getenv("GITLAB_URL", "https://gitlab.com")
     logger.info(f"Running on {gitlab_url}")
     gl = gitlab.Gitlab(
-        gitlab_url,
-        private_token=os.getenv("GITLAB_ACCESS_TOKEN")
+        gitlab_url, private_token=os.getenv("GITLAB_ACCESS_TOKEN"), per_page=100
     )
     try:
         gl.auth()
