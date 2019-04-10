@@ -20,9 +20,9 @@ stages:
 
 pycodestyle:
   stage: lint
-  <<: *install_dependencies
   script:
-    - pipenv run lint
+    - pip3 install -U black
+    - black --check .
   except:
     - tags
 
