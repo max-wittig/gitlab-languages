@@ -5,7 +5,6 @@ name = "pypi"
 
 [dev-packages]
 twine = "*"
-pycodestyle = "*"
 
 [packages]
 python-gitlab = "*"
@@ -14,8 +13,4 @@ maya = "*"
 
 [scripts]
 start = "python gitlab_languages.py --project_limit 10 --args owned=True visibility=public --cache language_cache.json"
-lint = "pycodestyle --exclude=venv/,build/ --show-source ."
-
-[requires]
-python_version = "3.7.0"
-
+lint = "black --check ."
