@@ -11,7 +11,7 @@ from typing import List, Dict, Tuple, Union
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 import gitlab
-from gitlab.exceptions import GitlabGetError, GitlabAuthenticationError
+from gitlab.exceptions import GitlabGetError, GitlabAuthenticationError, GitlabHttpError
 from gitlab.v4.objects import Group
 from maya import MayaDT
 from prometheus_client.core import CollectorRegistry, Gauge
@@ -193,7 +193,7 @@ class LanguageScanner:
             else:
                 self.projects_no_language += 1
                 logger.debug(f"\tNo language detected")
-        except GitlabGetError as e:
+        except (GitlabGetError, GitlabHttpError) as e:
             self.projects_no_language += 1
             logger.debug(f"\tNo language detected")
             logger.error(e.error_message)
@@ -211,8 +211,11 @@ class LanguageScanner:
             projects = self.gl_helper.get_group_projects(group)
             with ThreadPoolExecutor(max_workers=worker_count) as executor:
                 for project in projects:
-                    project = self.gl.projects.get(project.id, simple=True)
-                    executor.submit(self.scan, project)
+                    try:
+                        project = self.gl.projects.get(project.id, simple=True)
+                        executor.submit(self.scan, project)
+                    except (GitlabGetError, GitlabHttpError):
+                        continue
 
     def write_metrics(self, path=Path.cwd() / "metrics.txt"):
         self.metrics_collector.write(
@@ -242,7 +245,10 @@ class LanguageScanner:
 
         with ThreadPoolExecutor(max_workers=worker_count) as executor:
             for project in projects:
-                executor.submit(self.scan, project)
+                try:
+                    executor.submit(self.scan, project)
+                except (GitlabGetError, GitlabHttpError):
+                    continue
 
 
 def check_env_variables():
