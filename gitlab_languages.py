@@ -214,7 +214,7 @@ class LanguageScanner:
                     try:
                         project = self.gl.projects.get(project.id, simple=True)
                         executor.submit(self.scan, project)
-                    except (GitlabGetError, GitlabHttpError):
+                    except Exception:
                         continue
 
     def write_metrics(self, path=Path.cwd() / "metrics.txt"):
@@ -247,7 +247,7 @@ class LanguageScanner:
             for project in projects:
                 try:
                     executor.submit(self.scan, project)
-                except (GitlabGetError, GitlabHttpError):
+                except Exception:
                     continue
 
 
