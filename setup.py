@@ -8,11 +8,11 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as readme_file:
     readme = readme_file.read()
 
-requirements = ["prometheus_client>=0.3.1", "python-gitlab>=1.6.0", "maya>=0.5.0"]
+requirements = ["prometheus_client>=0.6.0", "python-gitlab>=1.8.0", "maya>=0.6.1"]
 
 setup_requirements = []
 
-test_requirements = ["pycodestyle>=2.4.0"]
+test_requirements = []
 
 setup(
     author="Max Wittig",
@@ -22,7 +22,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
         "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.6",
     ],
     description="Utility to generate a Prometheus data source "
     "text file for your GitLab repository "
@@ -40,7 +39,7 @@ setup(
     setup_requires=setup_requirements,
     tests_require=test_requirements,
     url="https://github.com/max-wittig/gitlab_languages",
-    version="1.5.2",
+    version="1.5.3",
     zip_safe=False,
-    python_requires=">3.6.0",
+    python_requires=">3.7.0",
 )
