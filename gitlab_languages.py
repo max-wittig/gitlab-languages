@@ -30,6 +30,16 @@ gitlab_url = None
 worker_count = multiprocessing.cpu_count() * 2
 
 
+def error_wrapper(gen):
+    while True:
+        try:
+            yield next(gen)
+        except StopIteration:
+            return
+        except (GitlabGetError, GitlabHttpError):
+            pass
+
+
 def memoize(func):
     @functools.wraps(func)
     def wrapper_decorator(*args, **kwargs):
@@ -210,11 +220,11 @@ class LanguageScanner:
             self.groups_scanned += 1
             projects = self.gl_helper.get_group_projects(group)
             with ThreadPoolExecutor(max_workers=worker_count) as executor:
-                for project in projects:
+                for project in error_wrapper(projects):
                     try:
                         project = self.gl.projects.get(project.id, simple=True)
                         executor.submit(self.scan, project)
-                    except Exception:
+                    except (GitlabGetError, GitlabHttpError):
                         continue
 
     def write_metrics(self, path=Path.cwd() / "metrics.txt"):
@@ -244,11 +254,8 @@ class LanguageScanner:
             logger.info(f"with additional arguments {args}")
 
         with ThreadPoolExecutor(max_workers=worker_count) as executor:
-            for project in projects:
-                try:
-                    executor.submit(self.scan, project)
-                except Exception:
-                    continue
+            for project in error_wrapper(projects):
+                executor.submit(self.scan, project)
 
 
 def check_env_variables():
