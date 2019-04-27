@@ -28,6 +28,7 @@ language_cache: Union[
 ] = None
 gitlab_url = None
 worker_count = os.getenv("WORKER_COUNT") or multiprocessing.cpu_count() * 2
+worker_count = int(worker_count)
 
 
 def error_wrapper(gen):
