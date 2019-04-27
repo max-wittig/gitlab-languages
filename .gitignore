@@ -103,3 +103,4 @@ ENV/
 .idea/
 *.iml
 metrics.txt
+*.json

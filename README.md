@@ -43,6 +43,8 @@ using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#lan
     ```bash
     export GITLAB_ACCESS_TOKEN=<SOME_TOKEN_WITH_API_SCOPE>
     export GITLAB_URL=https://gitlab.com # optional, defaults to https://gitlab.com
+    # optional:
+    export WORKER_COUNT=24
     ```
 
 3. Run the script

@@ -27,7 +27,7 @@ language_cache: Union[
     None, Dict[str, Dict[int, Tuple[str, List[Dict[str, float]]]]]
 ] = None
 gitlab_url = None
-worker_count = multiprocessing.cpu_count() * 2
+worker_count = os.getenv("WORKER_COUNT") or multiprocessing.cpu_count() * 2
 
 
 def error_wrapper(gen):
