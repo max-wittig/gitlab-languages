@@ -4,6 +4,7 @@ import itertools
 import json
 import logging
 import os
+import sys
 import multiprocessing
 from json.decoder import JSONDecodeError
 from pathlib import Path
@@ -260,19 +261,8 @@ class LanguageScanner:
 
 
 def check_env_variables():
-    required_variables = ["GITLAB_ACCESS_TOKEN"]
-    missing_variables = []
-    [
-        missing_variables.append(variable)
-        for variable in required_variables
-        if not os.getenv(variable)
-    ]
-    if len(missing_variables) > 0:
-        exit(
-            "Please set the required environment variables: {0}".format(
-                ", ".join(missing_variables)
-            )
-        )
+    if not os.getenv("GITLAB_ACCESS_TOKEN") and not os.getenv("GITLAB_TOKEN"):
+        sys.exit("Please set GITLAB_TOKEN")
 
 
 class GitLabHelper:
@@ -369,7 +359,9 @@ def main():
     gitlab_url = os.getenv("GITLAB_URL", "https://gitlab.com")
     logger.info(f"Running on {gitlab_url}")
     gl = gitlab.Gitlab(
-        gitlab_url, private_token=os.getenv("GITLAB_ACCESS_TOKEN"), per_page=100
+        gitlab_url,
+        os.getenv("GITLAB_ACCESS_TOKEN") or os.getenv("GITLAB_TOKEN"),
+        per_page=100,
     )
     try:
         gl.auth()

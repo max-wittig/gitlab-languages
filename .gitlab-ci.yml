@@ -1,24 +1,23 @@
-image: python:3.7-stretch
+image: python:3.8-slim
 
 variables:
   TWINE_REPOSITORY_URL: https://upload.pypi.org/legacy/
-  PIPENV_VERBOSITY: -1
   WORKER_COUNT: 24
-  # $TWINE_USERNAME
   # $TWINE_PASSWORD
-
 
 stages:
   - lint
-  - run
+  - test
   - deploy
 
 .install_dependencies: &install_dependencies
   before_script:
-    - python3 -m venv venv
-    - . venv/bin/activate
-    - pip install pipenv
-    - pipenv install --dev --deploy
+    - apt-get update && apt-get -y install curl
+    - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+    - source $HOME/.poetry/env
+    - poetry install -n
+    - poetry build
+    - pip3 install -U dist/*.whl
 
 black:
   stage: lint
@@ -28,43 +27,18 @@ black:
   except:
     - tags
 
-pages:
-  stage: run
+test:
+  stage: test
   <<: *install_dependencies
   script:
-    - pipenv run start
-  after_script:
-    - mkdir public
-    - mv metrics.txt public/
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - public
-  only:
-    - master
-  cache:
-    key: language_cache
-    paths:
-     - language_cache.json
-
+    - gitlab-languages --project_limit 10 --args owned=True visibility=public --cache language_cache.json
 
 deploy:
   stage: deploy
   <<: *install_dependencies
   script:
-    - pip install -U pip
-    - pip install -U setuptools
-    - pip install -U wheel
-    - python setup.py sdist bdist_wheel
-    # test package
-    - deactivate
-    - python3 -m venv test
-    - . test/bin/activate
-    - pip install -U dist/gitlab_languages-*.whl
-    - gitlab_languages -h
-    - gitlab_languages --cache test.json --project_limit 1 --args owned=True
-    - deactivate
-    - . venv/bin/activate
-    - twine upload --skip-existing -u $TWINE_USERNAME -p $TWINE_PASSWORD dist/*
+    - gitlab-languages -h
+    - gitlab-languages --cache test.json --project_limit 1 --args owned=True
+    - poetry publish --build -u __token__ -p $TWINE_PASSWORD
   only:
     - tags

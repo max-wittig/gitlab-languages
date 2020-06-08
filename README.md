@@ -1,13 +1,11 @@
-# gitlab_languages
+# gitlab-languages
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/e2f3eb1782f949a993af877242b2b699)](https://app.codacy.com/app/max-wittig/gitlab-languages?utm_source=github.com&utm_medium=referral&utm_content=max-wittig/gitlab-languages&utm_campaign=Badge_Grade_Dashboard)
-[![pipeline status](https://gitlab.com/max-wittig/gitlab_languages/badges/master/pipeline.svg)](https://gitlab.com/max-wittig/gitlab_languages/commits/master)
+[![pipeline status](https://gitlab.com/max-wittig/gitlab-languages/badges/master/pipeline.svg)](https://gitlab.com/max-wittig/gitlab-languages/commits/master)
 [![PyPI - License](https://img.shields.io/pypi/l/gitlab-languages.svg)](https://github.com/max-wittig/gitlab-languages/blob/master/LICENSE)
 
 Utility to generate a Prometheus data source text file for your GitLab instance
 using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#languages)
-
-![Demo](https://max-wittig.github.io/gitlab-languages/images/termtosvg_jai2cshl.svg)
 
 ## installation from PyPI
 
@@ -20,39 +18,32 @@ using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#lan
 1. Run the program
 
    ```bash
-   gitlab_languages --cache cache.json --args owned=True # more info about usage: see below
+   gitlab-languages --cache cache.json --args owned=True # more info about usage: see below
    ```
 
 ## installation from source
 
-1. Install pipenv
+1. Install python dependencies
 
     ```bash
-    pip install pipenv
+    poetry install
     ```
 
-2. Install python dependencies
+1. Set the required environment variables
 
     ```bash
-    pipenv install
-    pipenv shell
-    ```
-
-3. Set the required environment variables
-
-    ```bash
-    export GITLAB_ACCESS_TOKEN=<SOME_TOKEN_WITH_API_SCOPE>
+    export GITLAB_TOKEN=<SOME_TOKEN_WITH_API_SCOPE>
     export GITLAB_URL=https://gitlab.com # optional, defaults to https://gitlab.com
     # optional:
     export WORKER_COUNT=24
     ```
 
-3. Run the script
+1. Run the tool
 
     ```bash
-    python gitlab_languages.py
+    gitlab-languages
     ```
- 
+
 ## usage
 
 ```plain
@@ -84,8 +75,8 @@ You can specify additional arguments, that will be directly supplied to the
 Example:
 
 ```bash
-python3 gitlab_languages --args owned=True
-``` 
+gitlab-languages --args owned=True
+```
 
 More info about the available additional args can be found here:
 
