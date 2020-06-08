@@ -39,6 +39,6 @@ deploy:
   script:
     - gitlab-languages -h
     - gitlab-languages --cache test.json --project_limit 1 --args owned=True
-    - poetry publish --build -u __token__ -p $TWINE_PASSWORD
+    - poetry publish -n -u __token__ -p $TWINE_PASSWORD
   only:
     - tags
