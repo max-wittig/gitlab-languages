@@ -243,14 +243,17 @@ class LanguageScanner:
             args = {}
 
         projects = self.gl.projects.list(
-            as_list=False, all_available=True, simple=True, **args
+            as_list=False,
+            all_available=True,
+            simple=True,
+            pagination="keyset",
+            order_by="id",
+            **args,
         )
 
         if limit:
             projects = itertools.islice(projects, limit)
             logger.info(f"Scanning a maximum of {limit} projects")
-        else:
-            logger.info(f"Scanning {projects.total} projects")
 
         if args:
             logger.info(f"with additional arguments {args}")
