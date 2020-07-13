@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gitlab-languages"
-version = "2.0.0"
+version = "2.1.0"
 description = "Utility to generate a Prometheus data source"
 authors = ["Max Wittig"]
 license = "MIT"
