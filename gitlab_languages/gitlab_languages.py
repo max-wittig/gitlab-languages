@@ -3,16 +3,16 @@ import functools
 import itertools
 import json
 import logging
+import multiprocessing
 import os
 import sys
-import multiprocessing
+from concurrent.futures import ThreadPoolExecutor
 from json.decoder import JSONDecodeError
 from pathlib import Path
-from typing import List, Dict, Tuple, Union
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import as_completed
+from typing import Dict, List, Tuple, Union
+
 import gitlab
-from gitlab.exceptions import GitlabGetError, GitlabAuthenticationError, GitlabHttpError
+from gitlab.exceptions import GitlabAuthenticationError, GitlabGetError, GitlabHttpError
 from gitlab.v4.objects import Group
 from maya import MayaDT
 from prometheus_client.core import CollectorRegistry, Gauge
@@ -23,7 +23,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-"""{instance_url: {project_id: (last_activity_at, language_items)}}"""
+
+# Format: {instance_url: {project_id: (last_activity_at, language_items)}}
 language_cache: Union[
     None, Dict[str, Dict[int, Tuple[str, List[Dict[str, float]]]]]
 ] = None
@@ -243,7 +244,7 @@ class LanguageScanner:
             args = {}
 
         projects = self.gl.projects.list(
-            as_list=False,
+            iterator=True,
             all_available=True,
             simple=True,
             pagination="keyset",
@@ -273,9 +274,9 @@ class GitLabHelper:
         self.gl = gl
 
     def get_group_projects(self, root_group: Group):
-        for project in root_group.projects.list(as_list=False):
+        for project in root_group.projects.list(iterator=True):
             yield project
-        for subgroup in root_group.subgroups.list(as_list=False):
+        for subgroup in root_group.subgroups.list(iterator=True):
             gl_group = self.gl.groups.get(subgroup.id)
             self.get_group_projects(gl_group)
 
@@ -301,7 +302,7 @@ class GitLabHelper:
             sub_groups = self.get_subgroups(gl_group)
             for ignored_group in sub_groups:
                 ignored_projects = ignored_group.projects.list(
-                    as_list=False, all_available=True, simple=True
+                    iterator=True, all_available=True, simple=True
                 )
                 for ignored_project in ignored_projects:
                     logging.debug(
