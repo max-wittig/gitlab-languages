@@ -1,8 +1,21 @@
 [tool.poetry]
 name = "gitlab-languages"
-version = "2.3.1"
+version = "2.3.2"
 description = "Utility to generate a Prometheus data source from programming languages inside GitLab repositores"
 authors = ["Max Wittig"]
+readme = "README.md"
+repository = "https://github.com/max-wittig/gitlab-languages"
+keywords = ["gitlab", "languages", "api", "python-gitlab", "prometheus", "metrics"]
+classifiers=[
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Software Development",
+    "Topic :: Utilities"
+]
 license = "MIT"
 
 [tool.poetry.dependencies]
