@@ -9,13 +9,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
-        python-version: "3.10"
+        python-version: "3.12"
     - name: Publish
       run: |
-        pip3 install -U poetry==1.3.1
+        pip3 install -U poetry==1.8.2
         poetry install --no-dev
         poetry run gitlab-languages --help
         poetry publish --build -u __token__ -p ${{ secrets.PYPI_PASS }}
