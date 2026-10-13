@@ -24,7 +24,7 @@ using the [GitLab Language API](https://docs.gitlab.com/ee/api/projects.html#lan
 1. Install python dependencies
 
     ```bash
-    poetry install
+    uv sync
     ```
 
 1. Set the required environment variables
