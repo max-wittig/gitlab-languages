@@ -13,9 +13,12 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: "3.12"
+    - uses: astral-sh/setup-uv@v6
     - name: Publish
+      env:
+        UV_PUBLISH_TOKEN: ${{ secrets.PYPI_PASS }}
       run: |
-        pip3 install -U poetry==1.8.2
-        poetry install --no-dev
-        poetry run gitlab-languages --help
-        poetry publish --build -u __token__ -p ${{ secrets.PYPI_PASS }}
+        uv sync --locked --no-dev
+        uv run --no-sync gitlab-languages --help
+        uv build
+        uv publish
