@@ -19,7 +19,7 @@ from prometheus_client.core import CollectorRegistry, Gauge
 from prometheus_client.exposition import write_to_textfile
 
 logging.basicConfig(
-    format="%(asctime)s - %(levelname)s " "- %(message)s", level=logging.INFO
+    format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -205,10 +205,10 @@ class LanguageScanner:
                 self.projects_scanned += 1
             else:
                 self.projects_no_language += 1
-                logger.debug(f"\tNo language detected")
+                logger.debug("\tNo language detected")
         except (GitlabGetError, GitlabHttpError) as e:
             self.projects_no_language += 1
-            logger.debug(f"\tNo language detected")
+            logger.debug("\tNo language detected")
             logger.error(e.error_message)
 
     def scan_group_projects(self, group_ids):
@@ -216,9 +216,7 @@ class LanguageScanner:
             try:
                 group = self.gl.groups.get(group_id, simple=True)
             except GitlabGetError:
-                logger.error(
-                    f"Group with id {group_id} " f"does not exist or no access"
-                )
+                logger.error(f"Group with id {group_id} does not exist or no access")
                 continue
             self.groups_scanned += 1
             projects = self.gl_helper.get_group_projects(group)
@@ -296,7 +294,7 @@ class GitLabHelper:
             try:
                 gl_group = self.gl.groups.get(group_id)
             except GitlabGetError:
-                logging.error(f"Could not get group " f"with ID {group_id}. Skipping")
+                logging.error(f"Could not get group with ID {group_id}. Skipping")
                 continue
 
             sub_groups = self.get_subgroups(gl_group)
@@ -306,10 +304,10 @@ class GitLabHelper:
                 )
                 for ignored_project in ignored_projects:
                     logging.debug(
-                        f"Adding {ignored_project.name} " f"to the ignored project list"
+                        f"Adding {ignored_project.name} to the ignored project list"
                     )
                     projects.append(ignored_project.id)
-        logging.info(f"{len(projects)} projects will " f"be ignored and not scanned")
+        logging.info(f"{len(projects)} projects will be ignored and not scanned")
         return projects
 
 
@@ -391,8 +389,7 @@ def main():
         ignored_projects = gl_helper.get_ignored_projects(ignored_groups)
     if ignored_groups:
         logger.info(
-            f"Ignoring projects from group ids: "
-            f"{', '.join(map(str, ignored_groups))}"
+            f"Ignoring projects from group ids: {', '.join(map(str, ignored_groups))}"
         )
 
     scanner = LanguageScanner(gl_helper, ignored_projects)
