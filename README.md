@@ -49,7 +49,8 @@ usage: gitlab_languages [-h] [--project_limit PROJECT_LIMIT]
                         [--args ARGS [ARGS ...]]
                         [--groups GROUPS [GROUPS ...]]
                         [--ignore_groups IGNORE_GROUPS [IGNORE_GROUPS ...]]
-                        [--cache CACHE] [-o OUTPUT]
+                        [--cache CACHE] [--weight {equal,repository_size}]
+                        [-o OUTPUT]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -62,9 +63,33 @@ optional arguments:
   --ignore_groups IGNORE_GROUPS [IGNORE_GROUPS ...]
                         Ignore certain groups and their projects
   --cache CACHE         Cache file to use
+  --weight {equal,repository_size}
+                        Weight projects in the overall language percentage.
+                        repository_size uses precomputed repository size in
+                        bytes (default). equal keeps the historical
+                        per-project average.
   -o OUTPUT, --output OUTPUT
                         Location of the metrics file output
 ```
+
+### project size
+
+By default each project is weighted by its repository size. A repository with 10
+lines of code no longer counts the same as a repository with 10,000 lines.
+
+GitLab's languages API still returns only a percentage per language, not line
+counts. Those percentages are already based on bytes, so each percentage is
+weighted by the project's precomputed `statistics.repository_size`. GitLab
+stores that size, so the tool does not have to walk the repository. If a future
+languages payload includes absolute bytes or line counts, those values are used
+directly.
+
+Projects with no reported size are weighted as 1 byte. Pass `--weight equal` to
+restore the previous average, where every project counts the same.
+
+Reading repository size needs at least the Reporter role. When `--cache` is
+set, the size is stored with the language data and is not requested again until
+the project changes.
 
 ### additional arguments
 
@@ -143,6 +168,12 @@ projects_no_language_total 39.0
 # HELP groups_scanned_total Total groups scanned
 # TYPE groups_scanned_total gauge
 groups_scanned_total 0.0
+# HELP repository_size_bytes_total Sum of repository sizes in bytes used to weight language statistics
+# TYPE repository_size_bytes_total gauge
+repository_size_bytes_total 48233120.0
+# HELP projects_missing_size_total Projects without repository size, weighted as 1 byte
+# TYPE projects_missing_size_total gauge
+projects_missing_size_total 2.0
 ```
 
 Run the script via GitLab CI with schedules and export the metrics.txt file as GitLab pages.
